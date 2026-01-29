@@ -259,7 +259,7 @@
   <HandsSlotSettings>
     <Configurations>
       <!-- 默认配置：所有玩家 -->
-      <HandsConfig permission="default" width="4" height="4" />
+      <HandsConfig permission="default" width="5" height="3" />
 
       <!-- 可自行添加更多权限配置，例如:
       <HandsConfig permission="vip" width="8" height="8" />

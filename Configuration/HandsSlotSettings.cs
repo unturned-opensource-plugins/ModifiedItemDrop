@@ -21,8 +21,8 @@ namespace FFEmqo.ModifiedItemDrop.Configuration
                     new HandsConfig
                     {
                         PermissionName = "default",
-                        Width = 4,
-                        Height = 4
+                        Width = 5,
+                        Height = 3
                     }
                 }
             };
