@@ -1,0 +1,39 @@
+# Build results
+bin/
+obj/
+*.dll
+*.exe
+*.pdb
+
+# Visual Studio
+.vs/
+*.sln.DotSettings
+*.user
+*.suo
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+nul
+
+# Temporary files
+*.tmp
+*.temp
+*.log
+
+# NuGet
+packages/
+.nuget/
+
+# Runtime
+claims.json
+
+# Claude Code
+.claude/
+CLAUDE.md
