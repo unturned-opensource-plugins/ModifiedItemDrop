@@ -25,6 +25,8 @@ namespace FFEmqo.ModifiedItemDrop.Configuration
 
         public HandsSlotSettings HandsSlotSettings => _plugin.Configuration?.Instance?.HandsSlotSettings ?? HandsSlotSettings.CreateDefault();
 
+        public DeathSettings DeathSettings => _plugin.Configuration?.Instance?.DeathSettings ?? DeathSettings.CreateDefault();
+
         public ConfigurationReloadSummary ReloadFromConfiguration()
         {
             var config = _plugin.Configuration?.Instance ?? new ModifiedItemDropConfiguration();

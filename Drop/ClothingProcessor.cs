@@ -19,14 +19,12 @@ namespace FFEmqo.ModifiedItemDrop.Drop
         private readonly ConfigurationLoader _configurationLoader;
         private readonly System.Random _random;
         private readonly InventoryProcessor _inventoryProcessor;
-        private readonly bool _debugLoggingEnabled;
 
         public ClothingProcessor(ConfigurationLoader configurationLoader, System.Random random, InventoryProcessor inventoryProcessor)
         {
             _configurationLoader = configurationLoader ?? throw new ArgumentNullException(nameof(configurationLoader));
             _random = random ?? throw new ArgumentNullException(nameof(random));
             _inventoryProcessor = inventoryProcessor ?? throw new ArgumentNullException(nameof(inventoryProcessor));
-            _debugLoggingEnabled = configurationLoader.IsDebugLoggingEnabled;
         }
 
         /// <summary>
@@ -116,7 +114,7 @@ namespace FFEmqo.ModifiedItemDrop.Drop
 
         private void DebugLog(string message)
         {
-            LoggingHelper.LogDebug(message, _debugLoggingEnabled);
+            LoggingHelper.LogDebug(message, _configurationLoader.IsDebugLoggingEnabled);
         }
     }
 }

@@ -1,5 +1,7 @@
 using System;
+using System.Collections.Generic;
 using FFEmqo.ModifiedItemDrop.Claim;
+using FFEmqo.ModifiedItemDrop.Configuration;
 using FFEmqo.ModifiedItemDrop.Models;
 using FFEmqo.ModifiedItemDrop.Utilities;
 using Rocket.Unturned.Player;
@@ -16,12 +18,14 @@ namespace FFEmqo.ModifiedItemDrop.Drop
         private readonly InventoryProcessor _inventoryProcessor;
         private readonly ClothingProcessor _clothingProcessor;
         private readonly ClaimService _claimService;
+        private readonly ConfigurationLoader _configurationLoader;
 
-        public RestoreManager(InventoryProcessor inventoryProcessor, ClothingProcessor clothingProcessor, ClaimService claimService)
+        public RestoreManager(InventoryProcessor inventoryProcessor, ClothingProcessor clothingProcessor, ClaimService claimService, ConfigurationLoader configurationLoader)
         {
             _inventoryProcessor = inventoryProcessor ?? throw new ArgumentNullException(nameof(inventoryProcessor));
             _clothingProcessor = clothingProcessor ?? throw new ArgumentNullException(nameof(clothingProcessor));
             _claimService = claimService;
+            _configurationLoader = configurationLoader;
         }
 
         /// <summary>
@@ -37,6 +41,8 @@ namespace FFEmqo.ModifiedItemDrop.Drop
 
             var inventoryRestored = _inventoryProcessor.RestoreInventory(player, pending);
             var clothingRestored = _clothingProcessor.RestoreClothing(player, pending);
+
+            GiveRespawnItems(player);
 
             // Clear any remaining clothing contents (should not happen since clothing contents drop with clothing)
             pending.ClothingContentsToRestore.Clear();
@@ -123,6 +129,49 @@ namespace FFEmqo.ModifiedItemDrop.Drop
                 {
                     UtilityHelper.TryNotify(player, $"已自动领取 {claimCount} 个包，共 {totalItems} 个物品和 {totalClothing} 件衣物。");
                 }
+            }
+        }
+
+        public void GiveRespawnItems(UnturnedPlayer player)
+        {
+            var respawnItems = _configurationLoader?.DeathSettings?.RespawnItems;
+            if (respawnItems == null || respawnItems.Count == 0)
+            {
+                return;
+            }
+
+            var inventory = player?.Player?.inventory;
+            if (inventory == null)
+            {
+                return;
+            }
+
+            var failedItems = new List<Item>();
+
+            foreach (var respawnItem in respawnItems)
+            {
+                if (respawnItem.ItemID == 0 || respawnItem.Amount == 0)
+                {
+                    continue;
+                }
+
+                for (int i = 0; i < respawnItem.Amount; i++)
+                {
+                    var item = new Item(respawnItem.ItemID, true) { quality = respawnItem.Quality };
+                    if (!inventory.tryAddItem(item, true))
+                    {
+                        failedItems.Add(item);
+                    }
+                }
+
+                LoggingHelper.LogDebug($"Gave respawn item: id={respawnItem.ItemID} x{respawnItem.Amount}", _configurationLoader?.IsDebugLoggingEnabled ?? false);
+            }
+
+            if (failedItems.Count > 0 && _claimService != null)
+            {
+                var steamId = (ulong)player.CSteamID;
+                _claimService.AddClaim(steamId, player.Position, failedItems, null);
+                UtilityHelper.TryNotify(player, $"有 {failedItems.Count} 个复活物品空间不足，已存入待领取，使用 /mid claim 领取。");
             }
         }
 

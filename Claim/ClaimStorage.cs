@@ -150,9 +150,15 @@ namespace FFEmqo.ModifiedItemDrop.Claim
 
             lock (_lock)
             {
-                foreach (var claim in claimsToRemove.ToList())
+                var toRemove = new HashSet<ClaimRecord>(claimsToRemove);
+                if (toRemove.Count == 0)
                 {
-                    _claims.Remove(claim);
+                    return;
+                }
+
+                _claims.RemoveAll(c => toRemove.Contains(c));
+                foreach (var claim in toRemove)
+                {
                     RemoveFromIndex(claim);
                 }
                 _isDirty = true;

@@ -69,7 +69,8 @@ namespace FFEmqo.ModifiedItemDrop.Plugin
                     _configWatcher.EnableRaisingEvents = false;
                     _configWatcher.Changed -= OnConfigFileChanged;
                     _configWatcher.Created -= OnConfigFileChanged;
-                    _configWatcher.Renamed -= OnConfigFileChanged;
+                    _configWatcher.Renamed -= OnConfigFileRenamed;
+                    _configWatcher.Error -= OnConfigWatcherError;
                     _configWatcher.Dispose();
                     _configWatcher = null;
                 }
@@ -131,11 +132,13 @@ namespace FFEmqo.ModifiedItemDrop.Plugin
                 _configWatcher = new FileSystemWatcher(folder, configName)
                 {
                     IncludeSubdirectories = false,
-                    NotifyFilter = NotifyFilters.LastWrite | NotifyFilters.Size | NotifyFilters.FileName
+                    NotifyFilter = NotifyFilters.LastWrite | NotifyFilters.Size | NotifyFilters.FileName | NotifyFilters.CreationTime,
+                    InternalBufferSize = 16384
                 };
                 _configWatcher.Changed += OnConfigFileChanged;
                 _configWatcher.Created += OnConfigFileChanged;
-                _configWatcher.Renamed += OnConfigFileChanged;
+                _configWatcher.Renamed += OnConfigFileRenamed;
+                _configWatcher.Error += OnConfigWatcherError;
                 _configWatcher.EnableRaisingEvents = true;
 
                 LoggingHelper.LogInfo("Auto-reload enabled: watching configuration file for changes.");
@@ -148,6 +151,21 @@ namespace FFEmqo.ModifiedItemDrop.Plugin
         }
 
         private void OnConfigFileChanged(object sender, FileSystemEventArgs e)
+        {
+            TriggerAutoReload();
+        }
+
+        private void OnConfigFileRenamed(object sender, RenamedEventArgs e)
+        {
+            TriggerAutoReload();
+        }
+
+        private void OnConfigWatcherError(object sender, ErrorEventArgs e)
+        {
+            LoggingHelper.LogWarning($"Config watcher error: {e.GetException()?.Message}");
+        }
+
+        private void TriggerAutoReload()
         {
             // Debounce rapid successive events
             var now = DateTime.UtcNow;
@@ -172,7 +190,7 @@ namespace FFEmqo.ModifiedItemDrop.Plugin
                         LoggingHelper.LogError($"Auto-reload failed: {error}");
                     }
                 },
-                "OnConfigFileChanged"
+                "TriggerAutoReload"
             );
         }
     }

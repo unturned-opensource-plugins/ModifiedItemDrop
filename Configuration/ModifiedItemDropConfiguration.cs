@@ -14,6 +14,8 @@ namespace FFEmqo.ModifiedItemDrop.Configuration
 
         public HandsSlotSettings HandsSlotSettings { get; set; } = HandsSlotSettings.CreateDefault();
 
+        public DeathSettings DeathSettings { get; set; } = DeathSettings.CreateDefault();
+
         public void LoadDefaults()
         {
             EnableDebugLogging = false;
@@ -21,6 +23,7 @@ namespace FFEmqo.ModifiedItemDrop.Configuration
             RuleSet = DropRuleSet.CreateDefault();
             ClaimSettings = ClaimSettings.CreateDefault();
             HandsSlotSettings = HandsSlotSettings.CreateDefault();
+            DeathSettings = DeathSettings.CreateDefault();
         }
     }
 }

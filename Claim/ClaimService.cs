@@ -293,7 +293,7 @@ namespace FFEmqo.ModifiedItemDrop.Claim
             }
 
             var restored = 0;
-            foreach (var claimItem in items.ToList())
+            foreach (var claimItem in items)
             {
                 var item = new Item(claimItem.ItemId, claimItem.Amount, claimItem.Quality, claimItem.State ?? Array.Empty<byte>());
                 if (inventory.tryAddItem(item, true))
@@ -319,7 +319,7 @@ namespace FFEmqo.ModifiedItemDrop.Claim
             }
 
             var restored = 0;
-            foreach (var claimClothing in clothing.ToList())
+            foreach (var claimClothing in clothing)
             {
                 var state = claimClothing.State ?? Array.Empty<byte>();
                 var equipped = TryWearClothing(playerClothing, claimClothing.Slot, claimClothing.ItemId, claimClothing.Quality, state);

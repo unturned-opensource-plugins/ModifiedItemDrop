@@ -1,6 +1,5 @@
 using System.Collections.Generic;
 using FFEmqo.ModifiedItemDrop.Models;
-using Rocket.Unturned.Player;
 using SDG.Unturned;
 using UnityEngine;
 
@@ -12,7 +11,7 @@ namespace FFEmqo.ModifiedItemDrop.Drop
     /// </summary>
     public sealed class PendingRestore
     {
-        public PendingRestore(UnturnedPlayer player, Vector3 deathPosition)
+        public PendingRestore(Vector3 deathPosition)
         {
             DeathPosition = deathPosition;
         }

@@ -19,16 +19,12 @@ namespace FFEmqo.ModifiedItemDrop.Drop
         private readonly ChanceResolver _chanceResolver;
         private readonly ConfigurationLoader _configurationLoader;
         private readonly System.Random _random;
-        private readonly bool _debugLoggingEnabled;
-        private readonly bool _clothingContentsDebugEnabled;
 
         public InventoryProcessor(ChanceResolver chanceResolver, ConfigurationLoader configurationLoader, System.Random random)
         {
             _chanceResolver = chanceResolver ?? throw new ArgumentNullException(nameof(chanceResolver));
             _configurationLoader = configurationLoader ?? throw new ArgumentNullException(nameof(configurationLoader));
             _random = random ?? throw new ArgumentNullException(nameof(random));
-            _debugLoggingEnabled = configurationLoader.IsDebugLoggingEnabled;
-            _clothingContentsDebugEnabled = configurationLoader.IsClothingContentsDebugEnabled;
         }
 
         /// <summary>
@@ -85,6 +81,15 @@ namespace FFEmqo.ModifiedItemDrop.Drop
                         continue;
                     }
 
+                    // Check if item should be deleted on death
+                    var deleteList = _configurationLoader.DeathSettings?.DeleteOnDeathItems;
+                    if (deleteList != null && deleteList.Contains(jar.item.id))
+                    {
+                        inventory.removeItem(page, snapshot.Index);
+                        DebugLog($"✗ [Delete] id={jar.item.id} (DeleteOnDeath)");
+                        continue;
+                    }
+
                     var slotType = UtilityHelper.GetSlotTypeForPage(page);
                     var chance = _chanceResolver.GetChance(slotType, jar.item.id, out var source);
                     var roll = _random.NextDouble();
@@ -133,6 +138,15 @@ namespace FFEmqo.ModifiedItemDrop.Drop
                 var item = content.Item;
                 if (item == null || item.id == 0)
                 {
+                    continue;
+                }
+
+                // Check if item should be deleted on death
+                var deleteList = _configurationLoader.DeathSettings?.DeleteOnDeathItems;
+                if (deleteList != null && deleteList.Contains(item.id))
+                {
+                    container?.removeItem(content.Index);
+                    DebugClothingLog($"    ✗ id={item.id} (DeleteOnDeath)");
                     continue;
                 }
 
@@ -222,12 +236,12 @@ namespace FFEmqo.ModifiedItemDrop.Drop
 
         private void DebugLog(string message)
         {
-            LoggingHelper.LogDebug(message, _debugLoggingEnabled);
+            LoggingHelper.LogDebug(message, _configurationLoader.IsDebugLoggingEnabled);
         }
 
         private void DebugClothingLog(string message)
         {
-            LoggingHelper.LogDebugContents(message, _debugLoggingEnabled, _clothingContentsDebugEnabled);
+            LoggingHelper.LogDebugContents(message, _configurationLoader.IsDebugLoggingEnabled, _configurationLoader.IsClothingContentsDebugEnabled);
         }
     }
 }

@@ -1,12 +1,9 @@
 using System;
 using System.Collections.Generic;
-using System.Globalization;
 using System.Linq;
 using System.Text;
-using FFEmqo.ModifiedItemDrop.Configuration;
 using FFEmqo.ModifiedItemDrop.Drop;
 using FFEmqo.ModifiedItemDrop.Extensions;
-using FFEmqo.ModifiedItemDrop.Models;
 using FFEmqo.ModifiedItemDrop.Utilities;
 using Rocket.API;
 using Rocket.Unturned.Chat;
@@ -262,17 +259,6 @@ namespace FFEmqo.ModifiedItemDrop.Plugin
             }
 
             return lines;
-        }
-
-        private static bool TryParseChance(string input, out double chance)
-        {
-            if (!double.TryParse(input, NumberStyles.Float, CultureInfo.InvariantCulture, out chance))
-            {
-                return false;
-            }
-
-            chance = Math.Max(0d, Math.Min(1d, chance));
-            return true;
         }
 
         private static void HandleDump(IRocketPlayer caller, string[] args)

@@ -107,17 +107,7 @@ namespace FFEmqo.ModifiedItemDrop.Configuration
                         continue;
                     }
 
-                    // Hat, Mask, Glasses don't have storage, so ignore ContentsDropChance
-                    var contentsChance = (rule.Slot == SlotType.Hat || rule.Slot == SlotType.Mask || rule.Slot == SlotType.Glasses)
-                        ? 0.0d
-                        : UtilityHelper.ClampChance(rule.ContentsDropChance);
-
-                    ruleSet.ClothingRules.Add(new ClothingSlotRule
-                    {
-                        Slot = rule.Slot,
-                        SlotDropChance = UtilityHelper.ClampChance(rule.SlotDropChance),
-                        ContentsDropChance = contentsChance
-                    });
+                    ruleSet.ClothingRules.Add(NormalizeClothingRule(rule));
                 }
             }
 
@@ -216,18 +206,7 @@ namespace FFEmqo.ModifiedItemDrop.Configuration
                             continue;
                         }
 
-                        // Hat, Mask, Glasses don't have storage, so ignore ContentsDropChance
-                        var contentsChance = (rule.Slot == SlotType.Hat || rule.Slot == SlotType.Mask || rule.Slot == SlotType.Glasses)
-                            ? 0.0d
-                            : UtilityHelper.ClampChance(rule.ContentsDropChance);
-
-                        var normalized = new ClothingSlotRule
-                        {
-                            Slot = rule.Slot,
-                            SlotDropChance = UtilityHelper.ClampChance(rule.SlotDropChance),
-                            ContentsDropChance = contentsChance
-                        };
-                        clothingMap[normalized.Slot] = normalized;
+                        clothingMap[rule.Slot] = NormalizeClothingRule(rule);
                     }
                 }
 
@@ -245,6 +224,20 @@ namespace FFEmqo.ModifiedItemDrop.Configuration
             _clothingRuleMap = null;
         }
 
+        private static bool IsNoStorageSlot(SlotType slot)
+        {
+            return slot == SlotType.Hat || slot == SlotType.Mask || slot == SlotType.Glasses;
+        }
+
+        private static ClothingSlotRule NormalizeClothingRule(ClothingSlotRule rule)
+        {
+            return new ClothingSlotRule
+            {
+                Slot = rule.Slot,
+                SlotDropChance = UtilityHelper.ClampChance(rule.SlotDropChance),
+                ContentsDropChance = IsNoStorageSlot(rule.Slot) ? 0.0d : UtilityHelper.ClampChance(rule.ContentsDropChance)
+            };
+        }
     }
 
     public class RegionChanceEntry

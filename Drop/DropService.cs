@@ -42,14 +42,14 @@ namespace FFEmqo.ModifiedItemDrop.Drop
         {
             _inventoryProcessor = new InventoryProcessor(_chanceResolver, _configurationLoader, _random);
             _clothingProcessor = new ClothingProcessor(_configurationLoader, _random, _inventoryProcessor);
-            _restoreManager = new RestoreManager(_inventoryProcessor, _clothingProcessor, _claimService);
+            _restoreManager = new RestoreManager(_inventoryProcessor, _clothingProcessor, _claimService, _configurationLoader);
         }
 
         public void SetClaimService(ClaimService claimService)
         {
             _claimService = claimService;
             // Reinitialize RestoreManager with the new claim service
-            _restoreManager = new RestoreManager(_inventoryProcessor, _clothingProcessor, _claimService);
+            _restoreManager = new RestoreManager(_inventoryProcessor, _clothingProcessor, _claimService, _configurationLoader);
         }
 
         public void RefreshRules()
@@ -117,7 +117,7 @@ namespace FFEmqo.ModifiedItemDrop.Drop
             DebugLog($"HandlePlayerDying: player={player.CharacterName} ({player.CSteamID}) position={player.Position}");
 
             var deathPosition = player.Position;
-            var pending = new PendingRestore(player, deathPosition);
+            var pending = new PendingRestore(deathPosition);
 
             try
             {
@@ -155,17 +155,20 @@ namespace FFEmqo.ModifiedItemDrop.Drop
             PendingRestore pending = null;
             lock (_pendingRestoresLock)
             {
-                if (!_pendingRestores.TryGetValue(player.CSteamID, out pending))
-                {
-                    return;
-                }
+                _pendingRestores.TryGetValue(player.CSteamID, out pending);
             }
 
-            _restoreManager.RestorePendingItems(player, pending);
-
-            lock (_pendingRestoresLock)
+            if (pending != null)
             {
-                _pendingRestores.Remove(player.CSteamID);
+                _restoreManager.RestorePendingItems(player, pending);
+                lock (_pendingRestoresLock)
+                {
+                    _pendingRestores.Remove(player.CSteamID);
+                }
+            }
+            else
+            {
+                _restoreManager.GiveRespawnItems(player);
             }
         }
 
