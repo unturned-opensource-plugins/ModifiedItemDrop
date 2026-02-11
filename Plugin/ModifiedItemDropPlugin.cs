@@ -57,6 +57,12 @@ namespace FFEmqo.ModifiedItemDrop.Plugin
         {
             _deathHandler?.Disable();
             _deathHandler = null;
+
+            // Save any pending restores to claim storage before shutdown
+            DropService?.FlushPendingRestores();
+
+            _claimStorage?.ForceSave();
+
             DropService = null;
             ConfigurationLoader = null;
             _claimService = null;

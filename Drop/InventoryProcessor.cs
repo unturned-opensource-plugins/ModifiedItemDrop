@@ -18,13 +18,13 @@ namespace FFEmqo.ModifiedItemDrop.Drop
     {
         private readonly ChanceResolver _chanceResolver;
         private readonly ConfigurationLoader _configurationLoader;
-        private readonly System.Random _random;
+        private readonly Func<System.Random> _randomProvider;
 
-        public InventoryProcessor(ChanceResolver chanceResolver, ConfigurationLoader configurationLoader, System.Random random)
+        public InventoryProcessor(ChanceResolver chanceResolver, ConfigurationLoader configurationLoader, Func<System.Random> randomProvider)
         {
             _chanceResolver = chanceResolver ?? throw new ArgumentNullException(nameof(chanceResolver));
             _configurationLoader = configurationLoader ?? throw new ArgumentNullException(nameof(configurationLoader));
-            _random = random ?? throw new ArgumentNullException(nameof(random));
+            _randomProvider = randomProvider ?? throw new ArgumentNullException(nameof(randomProvider));
         }
 
         /// <summary>
@@ -92,7 +92,7 @@ namespace FFEmqo.ModifiedItemDrop.Drop
 
                     var slotType = UtilityHelper.GetSlotTypeForPage(page);
                     var chance = _chanceResolver.GetChance(slotType, jar.item.id, out var source);
-                    var roll = _random.NextDouble();
+                    var roll = _randomProvider().NextDouble();
                     var shouldDrop = roll <= chance;
 
                     inventory.removeItem(page, snapshot.Index);
@@ -151,7 +151,7 @@ namespace FFEmqo.ModifiedItemDrop.Drop
                 }
 
                 var effectiveChance = rule.ContentsDropChance;
-                var roll = _random.NextDouble();
+                var roll = _randomProvider().NextDouble();
                 var shouldDrop = effectiveChance > 0 && roll <= effectiveChance;
 
                 container?.removeItem(content.Index);

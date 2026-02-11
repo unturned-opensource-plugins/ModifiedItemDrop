@@ -121,7 +121,7 @@ namespace FFEmqo.ModifiedItemDrop.Claim
                 _isDirty = true;
             }
 
-            Save();
+            ForceSave();
         }
 
         public void Remove(ClaimRecord claim)

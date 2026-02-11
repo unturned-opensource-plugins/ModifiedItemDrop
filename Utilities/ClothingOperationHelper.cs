@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using FFEmqo.ModifiedItemDrop.Models;
 using SDG.Unturned;
 
@@ -10,35 +11,50 @@ namespace FFEmqo.ModifiedItemDrop.Utilities
     /// </summary>
     public static class ClothingOperationHelper
     {
+        private static readonly Dictionary<SlotType, Action<PlayerClothing, Guid, byte, byte[], bool>> ClearActions =
+            new Dictionary<SlotType, Action<PlayerClothing, Guid, byte, byte[], bool>>
+            {
+                { SlotType.Shirt, (c, g, q, s, b) => c.ReceiveWearShirt(g, q, s, b) },
+                { SlotType.Pants, (c, g, q, s, b) => c.ReceiveWearPants(g, q, s, b) },
+                { SlotType.Backpack, (c, g, q, s, b) => c.ReceiveWearBackpack(g, q, s, b) },
+                { SlotType.Vest, (c, g, q, s, b) => c.ReceiveWearVest(g, q, s, b) },
+                { SlotType.Hat, (c, g, q, s, b) => c.ReceiveWearHat(g, q, s, b) },
+                { SlotType.Mask, (c, g, q, s, b) => c.ReceiveWearMask(g, q, s, b) },
+                { SlotType.Glasses, (c, g, q, s, b) => c.ReceiveWearGlasses(g, q, s, b) }
+            };
+
+        private static readonly Dictionary<SlotType, Action<PlayerClothing, ushort, byte, byte[], bool>> WearActions =
+            new Dictionary<SlotType, Action<PlayerClothing, ushort, byte, byte[], bool>>
+            {
+                { SlotType.Shirt, (c, id, q, s, b) => c.askWearShirt(id, q, s, b) },
+                { SlotType.Pants, (c, id, q, s, b) => c.askWearPants(id, q, s, b) },
+                { SlotType.Backpack, (c, id, q, s, b) => c.askWearBackpack(id, q, s, b) },
+                { SlotType.Vest, (c, id, q, s, b) => c.askWearVest(id, q, s, b) },
+                { SlotType.Hat, (c, id, q, s, b) => c.askWearHat(id, q, s, b) },
+                { SlotType.Mask, (c, id, q, s, b) => c.askWearMask(id, q, s, b) },
+                { SlotType.Glasses, (c, id, q, s, b) => c.askWearGlasses(id, q, s, b) }
+            };
+
+        private static readonly Dictionary<SlotType, Func<PlayerClothing, ushort>> SlotIdAccessors =
+            new Dictionary<SlotType, Func<PlayerClothing, ushort>>
+            {
+                { SlotType.Shirt, c => c.shirt },
+                { SlotType.Pants, c => c.pants },
+                { SlotType.Backpack, c => c.backpack },
+                { SlotType.Vest, c => c.vest },
+                { SlotType.Hat, c => c.hat },
+                { SlotType.Mask, c => c.mask },
+                { SlotType.Glasses, c => c.glasses }
+            };
+
         /// <summary>
         /// Clears a clothing slot by setting it to empty (ID 0).
         /// </summary>
         public static void ClearClothingSlot(PlayerClothing clothing, SlotType slot)
         {
-            var emptyState = Array.Empty<byte>();
-            switch (slot)
+            if (ClearActions.TryGetValue(slot, out var action))
             {
-                case SlotType.Shirt:
-                    clothing.ReceiveWearShirt(Guid.Empty, 0, emptyState, false);
-                    break;
-                case SlotType.Pants:
-                    clothing.ReceiveWearPants(Guid.Empty, 0, emptyState, false);
-                    break;
-                case SlotType.Backpack:
-                    clothing.ReceiveWearBackpack(Guid.Empty, 0, emptyState, false);
-                    break;
-                case SlotType.Vest:
-                    clothing.ReceiveWearVest(Guid.Empty, 0, emptyState, false);
-                    break;
-                case SlotType.Hat:
-                    clothing.ReceiveWearHat(Guid.Empty, 0, emptyState, false);
-                    break;
-                case SlotType.Mask:
-                    clothing.ReceiveWearMask(Guid.Empty, 0, emptyState, false);
-                    break;
-                case SlotType.Glasses:
-                    clothing.ReceiveWearGlasses(Guid.Empty, 0, emptyState, false);
-                    break;
+                action(clothing, Guid.Empty, 0, Array.Empty<byte>(), false);
             }
         }
 
@@ -47,30 +63,9 @@ namespace FFEmqo.ModifiedItemDrop.Utilities
         /// </summary>
         public static void WearClothingItem(PlayerClothing clothing, SlotType slot, ushort itemId, byte quality, byte[] state)
         {
-            var itemState = state ?? Array.Empty<byte>();
-            switch (slot)
+            if (WearActions.TryGetValue(slot, out var action))
             {
-                case SlotType.Shirt:
-                    clothing.askWearShirt(itemId, quality, itemState, true);
-                    break;
-                case SlotType.Pants:
-                    clothing.askWearPants(itemId, quality, itemState, true);
-                    break;
-                case SlotType.Backpack:
-                    clothing.askWearBackpack(itemId, quality, itemState, true);
-                    break;
-                case SlotType.Vest:
-                    clothing.askWearVest(itemId, quality, itemState, true);
-                    break;
-                case SlotType.Hat:
-                    clothing.askWearHat(itemId, quality, itemState, true);
-                    break;
-                case SlotType.Mask:
-                    clothing.askWearMask(itemId, quality, itemState, true);
-                    break;
-                case SlotType.Glasses:
-                    clothing.askWearGlasses(itemId, quality, itemState, true);
-                    break;
+                action(clothing, itemId, quality, state ?? Array.Empty<byte>(), true);
             }
         }
 
@@ -80,61 +75,13 @@ namespace FFEmqo.ModifiedItemDrop.Utilities
         /// </summary>
         public static bool TryWearClothing(PlayerClothing clothing, SlotType slot, ushort itemId, byte quality, byte[] state)
         {
-            var itemState = state ?? Array.Empty<byte>();
-            switch (slot)
+            if (!SlotIdAccessors.TryGetValue(slot, out var accessor) || accessor(clothing) != 0)
             {
-                case SlotType.Shirt:
-                    if (clothing.shirt == 0)
-                    {
-                        clothing.askWearShirt(itemId, quality, itemState, true);
-                        return true;
-                    }
-                    break;
-                case SlotType.Pants:
-                    if (clothing.pants == 0)
-                    {
-                        clothing.askWearPants(itemId, quality, itemState, true);
-                        return true;
-                    }
-                    break;
-                case SlotType.Backpack:
-                    if (clothing.backpack == 0)
-                    {
-                        clothing.askWearBackpack(itemId, quality, itemState, true);
-                        return true;
-                    }
-                    break;
-                case SlotType.Vest:
-                    if (clothing.vest == 0)
-                    {
-                        clothing.askWearVest(itemId, quality, itemState, true);
-                        return true;
-                    }
-                    break;
-                case SlotType.Hat:
-                    if (clothing.hat == 0)
-                    {
-                        clothing.askWearHat(itemId, quality, itemState, true);
-                        return true;
-                    }
-                    break;
-                case SlotType.Mask:
-                    if (clothing.mask == 0)
-                    {
-                        clothing.askWearMask(itemId, quality, itemState, true);
-                        return true;
-                    }
-                    break;
-                case SlotType.Glasses:
-                    if (clothing.glasses == 0)
-                    {
-                        clothing.askWearGlasses(itemId, quality, itemState, true);
-                        return true;
-                    }
-                    break;
+                return false;
             }
 
-            return false;
+            WearClothingItem(clothing, slot, itemId, quality, state);
+            return true;
         }
     }
 }

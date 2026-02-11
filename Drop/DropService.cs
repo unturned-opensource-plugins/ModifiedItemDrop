@@ -20,28 +20,28 @@ namespace FFEmqo.ModifiedItemDrop.Drop
     {
         private readonly ConfigurationLoader _configurationLoader;
         private readonly ChanceResolver _chanceResolver;
-        private readonly System.Random _random;
+        [ThreadStatic] private static System.Random _random;
+        private static System.Random GetRandom() => _random ?? (_random = new System.Random(Environment.TickCount ^ System.Threading.Thread.CurrentThread.ManagedThreadId));
         private readonly Dictionary<CSteamID, PendingRestore> _pendingRestores = new Dictionary<CSteamID, PendingRestore>();
         private readonly object _pendingRestoresLock = new object();
 
-        private InventoryProcessor _inventoryProcessor;
-        private ClothingProcessor _clothingProcessor;
-        private RestoreManager _restoreManager;
+        private volatile InventoryProcessor _inventoryProcessor;
+        private volatile ClothingProcessor _clothingProcessor;
+        private volatile RestoreManager _restoreManager;
         private ClaimService _claimService;
 
         public DropService(ConfigurationLoader configurationLoader)
         {
             _configurationLoader = configurationLoader ?? throw new ArgumentNullException(nameof(configurationLoader));
             _chanceResolver = new ChanceResolver(configurationLoader.CurrentRuleSet);
-            _random = new System.Random();
 
             InitializeProcessors();
         }
 
         private void InitializeProcessors()
         {
-            _inventoryProcessor = new InventoryProcessor(_chanceResolver, _configurationLoader, _random);
-            _clothingProcessor = new ClothingProcessor(_configurationLoader, _random, _inventoryProcessor);
+            _inventoryProcessor = new InventoryProcessor(_chanceResolver, _configurationLoader, GetRandom);
+            _clothingProcessor = new ClothingProcessor(_configurationLoader, GetRandom, _inventoryProcessor);
             _restoreManager = new RestoreManager(_inventoryProcessor, _clothingProcessor, _claimService, _configurationLoader);
         }
 
@@ -121,9 +121,14 @@ namespace FFEmqo.ModifiedItemDrop.Drop
 
             try
             {
+                // Capture local references to avoid stale processors during concurrent RefreshRules
+                var invProc = _inventoryProcessor;
+                var clothProc = _clothingProcessor;
+                var restMgr = _restoreManager;
+
                 ForceUnequipCurrentItem(player);
-                _inventoryProcessor.ProcessInventory(player, pending, deathPosition);
-                _clothingProcessor.ProcessClothing(player, pending, deathPosition);
+                invProc.ProcessInventory(player, pending, deathPosition);
+                clothProc.ProcessClothing(player, pending, deathPosition);
 
                 lock (_pendingRestoresLock)
                 {
@@ -179,33 +184,26 @@ namespace FFEmqo.ModifiedItemDrop.Drop
                 return;
             }
 
-            PendingRestore pending = null;
+            PendingRestore pending;
             lock (_pendingRestoresLock)
             {
                 if (!_pendingRestores.TryGetValue(player.CSteamID, out pending))
                 {
                     return;
                 }
+                _pendingRestores.Remove(player.CSteamID);
             }
 
             // Save pending items to persistent claim storage instead of forcing restore
             if (_claimService != null && !pending.IsEmpty)
             {
                 var steamId = (ulong)player.CSteamID;
-                var remainingItems = pending.InventoryItems;
-                var remainingClothing = pending.ClothingItems;
-                _claimService.AddClaim(steamId, pending.DeathPosition, remainingItems, remainingClothing);
-                DebugLog($"Player {player.CharacterName} disconnected, saved {remainingItems.Count} items and {remainingClothing.Count} clothing to claim storage.");
+                _claimService.AddClaim(steamId, pending.DeathPosition, pending.InventoryItems, pending.ClothingItems);
+                DebugLog($"Player {player.CharacterName} disconnected, saved {pending.InventoryItems.Count} items and {pending.ClothingItems.Count} clothing to claim storage.");
             }
             else
             {
-                // Fallback to immediate restore if claim service not available
                 _restoreManager.RestoreImmediately(player, pending);
-            }
-
-            lock (_pendingRestoresLock)
-            {
-                _pendingRestores.Remove(player.CSteamID);
             }
         }
 
@@ -227,6 +225,39 @@ namespace FFEmqo.ModifiedItemDrop.Drop
             }
 
             _restoreManager.ClaimAllPending(player);
+        }
+
+        /// <summary>
+        /// Flushes all pending restores to claim storage. Called during plugin unload.
+        /// </summary>
+        public void FlushPendingRestores()
+        {
+            if (_claimService == null)
+            {
+                return;
+            }
+
+            List<KeyValuePair<CSteamID, PendingRestore>> snapshot;
+            lock (_pendingRestoresLock)
+            {
+                if (_pendingRestores.Count == 0)
+                {
+                    return;
+                }
+                snapshot = new List<KeyValuePair<CSteamID, PendingRestore>>(_pendingRestores);
+                _pendingRestores.Clear();
+            }
+
+            foreach (var kvp in snapshot)
+            {
+                var pending = kvp.Value;
+                if (!pending.IsEmpty)
+                {
+                    _claimService.AddClaim((ulong)kvp.Key, pending.DeathPosition, pending.InventoryItems, pending.ClothingItems);
+                }
+            }
+
+            DebugLog($"Flushed {snapshot.Count} pending restores to claim storage on shutdown.");
         }
 
         private void DebugLog(string message)

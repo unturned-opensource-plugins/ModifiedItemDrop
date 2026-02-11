@@ -190,13 +190,21 @@ namespace FFEmqo.ModifiedItemDrop.Claim
                 return false;
             }
 
-            var restoredItems = RestoreItems(player, claim.Items);
+            var restoredItems = RestoreItemsAndPrune(player, claim.Items);
             var restoredClothing = RestoreClothing(player, claim.Clothing);
 
             itemsRestored = restoredItems;
             clothingRestored = restoredClothing;
 
-            _storage.Remove(claim);
+            if (claim.IsEmpty)
+            {
+                _storage.Remove(claim);
+            }
+            else
+            {
+                _storage.ForceSave();
+            }
+
             hasMore = _storage.GetCountBySteamId(steamId) > 0;
 
             return restoredItems > 0 || restoredClothing > 0;
@@ -225,7 +233,10 @@ namespace FFEmqo.ModifiedItemDrop.Claim
 
             foreach (var claim in claims)
             {
-                var restoredItems = RestoreItems(player, claim.Items);
+                var itemsBefore = claim.Items?.Count ?? 0;
+                var clothingBefore = claim.Clothing?.Count ?? 0;
+
+                var restoredItems = RestoreItemsAndPrune(player, claim.Items);
                 var restoredClothing = RestoreClothing(player, claim.Clothing);
 
                 if (restoredItems > 0 || restoredClothing > 0)
@@ -233,6 +244,10 @@ namespace FFEmqo.ModifiedItemDrop.Claim
                     claimCount++;
                     totalItems += restoredItems;
                     totalClothing += restoredClothing;
+                }
+
+                if (claim.IsEmpty)
+                {
                     claimsToRemove.Add(claim);
                 }
             }
@@ -240,6 +255,12 @@ namespace FFEmqo.ModifiedItemDrop.Claim
             if (claimsToRemove.Count > 0)
             {
                 _storage.RemoveRange(claimsToRemove);
+            }
+
+            // Force save if any claims were partially consumed
+            if (claimCount > 0 && claimsToRemove.Count < claimCount)
+            {
+                _storage.ForceSave();
             }
 
             return claimCount > 0;
@@ -298,6 +319,38 @@ namespace FFEmqo.ModifiedItemDrop.Claim
                 var item = new Item(claimItem.ItemId, claimItem.Amount, claimItem.Quality, claimItem.State ?? Array.Empty<byte>());
                 if (inventory.tryAddItem(item, true))
                 {
+                    restored++;
+                }
+            }
+
+            return restored;
+        }
+
+        /// <summary>
+        /// Restores items and removes successfully restored ones from the list.
+        /// Items that fail to restore (e.g. inventory full) remain in the list.
+        /// </summary>
+        private int RestoreItemsAndPrune(UnturnedPlayer player, List<ClaimItem> items)
+        {
+            if (items == null || items.Count == 0)
+            {
+                return 0;
+            }
+
+            var inventory = player.Player?.inventory;
+            if (inventory == null)
+            {
+                return 0;
+            }
+
+            var restored = 0;
+            for (int i = items.Count - 1; i >= 0; i--)
+            {
+                var claimItem = items[i];
+                var item = new Item(claimItem.ItemId, claimItem.Amount, claimItem.Quality, claimItem.State ?? Array.Empty<byte>());
+                if (inventory.tryAddItem(item, true))
+                {
+                    items.RemoveAt(i);
                     restored++;
                 }
             }

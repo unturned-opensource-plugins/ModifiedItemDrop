@@ -17,13 +17,13 @@ namespace FFEmqo.ModifiedItemDrop.Drop
     public sealed class ClothingProcessor
     {
         private readonly ConfigurationLoader _configurationLoader;
-        private readonly System.Random _random;
+        private readonly Func<System.Random> _randomProvider;
         private readonly InventoryProcessor _inventoryProcessor;
 
-        public ClothingProcessor(ConfigurationLoader configurationLoader, System.Random random, InventoryProcessor inventoryProcessor)
+        public ClothingProcessor(ConfigurationLoader configurationLoader, Func<System.Random> randomProvider, InventoryProcessor inventoryProcessor)
         {
             _configurationLoader = configurationLoader ?? throw new ArgumentNullException(nameof(configurationLoader));
-            _random = random ?? throw new ArgumentNullException(nameof(random));
+            _randomProvider = randomProvider ?? throw new ArgumentNullException(nameof(randomProvider));
             _inventoryProcessor = inventoryProcessor ?? throw new ArgumentNullException(nameof(inventoryProcessor));
         }
 
@@ -43,7 +43,7 @@ namespace FFEmqo.ModifiedItemDrop.Drop
             {
                 var rule = _configurationLoader.CurrentRuleSet.ResolveClothingRule(snapshot.SlotType);
                 var chance = rule.SlotDropChance;
-                var roll = _random.NextDouble();
+                var roll = _randomProvider().NextDouble();
                 var shouldDrop = roll <= chance;
 
                 var container = PlayerExtensions.GetClothingContainer(clothing, snapshot.SlotType);

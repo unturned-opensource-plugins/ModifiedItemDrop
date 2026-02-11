@@ -18,13 +18,13 @@ namespace FFEmqo.ModifiedItemDrop.Configuration
         public List<ClothingSlotRule> ClothingRules { get; set; } = new List<ClothingSlotRule>();
 
         [XmlIgnore]
-        private Dictionary<string, double> _regionChanceMap;
+        private volatile Dictionary<string, double> _regionChanceMap;
 
         [XmlIgnore]
-        private Dictionary<ushort, double> _itemChanceMap;
+        private volatile Dictionary<ushort, double> _itemChanceMap;
 
         [XmlIgnore]
-        private Dictionary<SlotType, ClothingSlotRule> _clothingRuleMap;
+        private volatile Dictionary<SlotType, ClothingSlotRule> _clothingRuleMap;
 
         [XmlIgnore]
         private readonly object _cacheLock = new object();
