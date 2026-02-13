@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using FFEmqo.ModifiedItemDrop.Claim;
 using FFEmqo.ModifiedItemDrop.Configuration;
 using FFEmqo.ModifiedItemDrop.Models;
@@ -198,7 +199,7 @@ namespace FFEmqo.ModifiedItemDrop.Drop
             if (_claimService != null && !pending.IsEmpty)
             {
                 var steamId = (ulong)player.CSteamID;
-                _claimService.AddClaim(steamId, pending.DeathPosition, pending.InventoryItems, pending.ClothingItems);
+                _claimService.AddClaim(steamId, pending.DeathPosition, pending.InventoryItems.Select(x => x.Item).ToList(), pending.ClothingItems);
                 DebugLog($"Player {player.CharacterName} disconnected, saved {pending.InventoryItems.Count} items and {pending.ClothingItems.Count} clothing to claim storage.");
             }
             else
@@ -253,7 +254,7 @@ namespace FFEmqo.ModifiedItemDrop.Drop
                 var pending = kvp.Value;
                 if (!pending.IsEmpty)
                 {
-                    _claimService.AddClaim((ulong)kvp.Key, pending.DeathPosition, pending.InventoryItems, pending.ClothingItems);
+                    _claimService.AddClaim((ulong)kvp.Key, pending.DeathPosition, pending.InventoryItems.Select(x => x.Item).ToList(), pending.ClothingItems);
                 }
             }
 

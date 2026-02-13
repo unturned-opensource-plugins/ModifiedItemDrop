@@ -21,7 +21,12 @@ namespace FFEmqo.ModifiedItemDrop.Plugin
 
         public List<string> Aliases => new List<string> { "modifieditemdrop" };
 
-        public List<string> Permissions => new List<string>();
+        public List<string> Permissions => new List<string>
+        {
+            "modifieditemdrop.reload",
+            "modifieditemdrop.preview",
+            "modifieditemdrop.claim"
+        };
 
         public void Execute(IRocketPlayer caller, string[] command)
         {

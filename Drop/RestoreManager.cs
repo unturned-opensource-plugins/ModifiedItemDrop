@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using FFEmqo.ModifiedItemDrop.Claim;
 using FFEmqo.ModifiedItemDrop.Configuration;
 using FFEmqo.ModifiedItemDrop.Models;
@@ -56,7 +57,7 @@ namespace FFEmqo.ModifiedItemDrop.Drop
             if (_claimService != null)
             {
                 var steamId = (ulong)player.CSteamID;
-                var remainingItems = pending.InventoryItems;
+                var remainingItems = pending.InventoryItems.Select(x => x.Item).ToList();
                 var remainingClothing = pending.ClothingItems;
                 var claim = _claimService.AddClaim(steamId, pending.DeathPosition, remainingItems, remainingClothing);
 

@@ -45,14 +45,12 @@ namespace FFEmqo.ModifiedItemDrop.Drop
             }
 
             // Process per page in reverse order to keep indexes valid.
-            // Skip pages 3-6 (clothing storage) - those are handled by HandleClothingContents
+            // Skip pages 3-6 (clothing storage) because they are handled by HandleClothingContents.
             var groupedByPage = new Dictionary<byte, List<InventoryItemSnapshot>>();
 
             foreach (var snapshot in snapshots)
             {
-                // Skip clothing storage pages (3=backpack, 4=vest, 5=shirt, 6=pants)
-                // Page 2 is Hands slot, not clothing storage!
-                // These are processed by HandleClothingContents using ClothingRules
+                // Skip clothing storage pages (3=backpack, 4=vest, 5=shirt, 6=pants).
                 if (snapshot.Page >= 3 && snapshot.Page <= 6)
                 {
                     continue;
@@ -81,12 +79,12 @@ namespace FFEmqo.ModifiedItemDrop.Drop
                         continue;
                     }
 
-                    // Check if item should be deleted on death
+                    // Check if item should be deleted on death.
                     var deleteList = _configurationLoader.DeathSettings?.DeleteOnDeathItems;
                     if (deleteList != null && deleteList.Contains(jar.item.id))
                     {
                         inventory.removeItem(page, snapshot.Index);
-                        DebugLog($"✗ [Delete] id={jar.item.id} (DeleteOnDeath)");
+                        DebugLog($"[Delete] id={jar.item.id} (DeleteOnDeath)");
                         continue;
                     }
 
@@ -101,21 +99,21 @@ namespace FFEmqo.ModifiedItemDrop.Drop
                     {
                         UtilityHelper.DropWorldItem(jar.item, deathPosition);
                         var stateStr = jar.item.state != null ? $"state[{jar.item.state.Length}]" : "state[]";
-                        DebugLog($"✗ [{slotType}] id={jar.item.id} ({source}) {roll:P0} ≤ {chance:P0} {stateStr}");
+                        DebugLog($"[Drop][{slotType}] id={jar.item.id} ({source}) {roll:P0} <= {chance:P0} {stateStr}");
                     }
                     else
                     {
                         var cloned = UtilityHelper.CloneItem(jar.item);
                         var stateStr = cloned.state != null ? $"state[{cloned.state.Length}]" : "state[]";
-                        pending.InventoryItems.Add(cloned);
-                        DebugLog($"✓ [{slotType}] id={jar.item.id} ({source}) {roll:P0} > {chance:P0} {stateStr}");
+                        pending.InventoryItems.Add(new PendingInventoryItem(cloned, page));
+                        DebugLog($"[Keep][{slotType}] id={jar.item.id} ({source}) {roll:P0} > {chance:P0} {stateStr}");
                     }
                 }
             }
         }
 
         /// <summary>
-        /// Handles clothing contents based on the clothing slot rules.
+        /// Handles clothing contents based on clothing slot rules.
         /// </summary>
         public void HandleClothingContents(ClothingItemSnapshot snapshot, ClothingSlotRule rule, PendingRestore pending, Vector3 deathPosition, bool clothingWillDrop, double slotChance, Items container)
         {
@@ -141,12 +139,12 @@ namespace FFEmqo.ModifiedItemDrop.Drop
                     continue;
                 }
 
-                // Check if item should be deleted on death
+                // Check if item should be deleted on death.
                 var deleteList = _configurationLoader.DeathSettings?.DeleteOnDeathItems;
                 if (deleteList != null && deleteList.Contains(item.id))
                 {
                     container?.removeItem(content.Index);
-                    DebugClothingLog($"    ✗ id={item.id} (DeleteOnDeath)");
+                    DebugClothingLog($"    [Delete] id={item.id} (DeleteOnDeath)");
                     continue;
                 }
 
@@ -156,36 +154,38 @@ namespace FFEmqo.ModifiedItemDrop.Drop
 
                 container?.removeItem(content.Index);
 
-                // If clothing will drop, contents must also drop (衣服掉了，里面的物品也要掉)
+                // If clothing drops, its contents must drop too.
                 if (clothingWillDrop || shouldDrop)
                 {
                     UtilityHelper.DropWorldItem(item, deathPosition);
                     droppedCount++;
                     if (clothingWillDrop)
                     {
-                        DebugClothingLog($"    ✗ id={item.id} (衣物掉落)");
+                        DebugClothingLog($"    [Drop] id={item.id} (clothing dropped)");
                     }
                     else
                     {
-                        DebugClothingLog($"    ✗ id={item.id} ({roll:P0} > {effectiveChance:P0})");
+                        DebugClothingLog($"    [Drop] id={item.id} ({roll:P0} <= {effectiveChance:P0})");
                     }
+
                     continue;
                 }
 
-                // Save to clothing contents restore map so it can be restored to the correct slot
+                // Save to clothing contents restore map so it can be restored to the correct slot.
                 if (!pending.ClothingContentsToRestore.TryGetValue(snapshot.SlotType, out var contentsList))
                 {
                     contentsList = new List<Item>();
                     pending.ClothingContentsToRestore[snapshot.SlotType] = contentsList;
                 }
+
                 contentsList.Add(UtilityHelper.CloneItem(item));
                 keptCount++;
-                DebugClothingLog($"    ✓ id={item.id} ({roll:P0} ≤ {effectiveChance:P0})");
+                DebugClothingLog($"    [Keep] id={item.id} ({roll:P0} > {effectiveChance:P0})");
             }
 
             if (droppedCount > 0 || keptCount > 0)
             {
-                DebugClothingLog($"  {snapshot.SlotType} 内容物: ✓{keptCount} ✗{droppedCount}");
+                DebugClothingLog($"  {snapshot.SlotType} contents: keep={keptCount} drop={droppedCount}");
             }
         }
 
@@ -203,18 +203,32 @@ namespace FFEmqo.ModifiedItemDrop.Drop
             var restored = 0;
             var failed = 0;
 
-            // 直接迭代，避免创建副本
             for (int i = pending.InventoryItems.Count - 1; i >= 0; i--)
             {
-                var item = pending.InventoryItems[i];
-                var clone = UtilityHelper.CloneItem(item);
-                var stateStr = clone.state != null ? $"state[{clone.state.Length}]" : "state[]";
-                var ok = inventory.tryAddItem(clone, true);
+                var pendingItem = pending.InventoryItems[i];
+                var item = pendingItem?.Item;
+                if (item == null || item.id == 0)
+                {
+                    pending.InventoryItems.RemoveAt(i);
+                    continue;
+                }
+
+                var stateStr = item.state != null ? $"state[{item.state.Length}]" : "state[]";
+
+                // Restore to original page first (especially primary/secondary slots),
+                // then fall back to default auto-placement.
+                var ok = TryAddToPreferredPage(inventory, pendingItem);
+                if (!ok)
+                {
+                    var fallbackClone = UtilityHelper.CloneItem(item);
+                    ok = inventory.tryAddItem(fallbackClone, true);
+                }
+
                 if (ok)
                 {
                     pending.InventoryItems.RemoveAt(i);
                     restored++;
-                    DebugLog($"Restored inventory item: id={item.id} {stateStr}");
+                    DebugLog($"Restored inventory item: id={item.id} page={pendingItem.SourcePage} {stateStr}");
                 }
                 else
                 {
@@ -226,12 +240,36 @@ namespace FFEmqo.ModifiedItemDrop.Drop
             {
                 DebugLog($"Restored {restored} inventory items.");
             }
+
             if (failed > 0)
             {
                 DebugLog($"Deferred {failed} inventory items due to no space.");
             }
 
             return restored > 0;
+        }
+
+        private static bool TryAddToPreferredPage(PlayerInventory inventory, PendingInventoryItem pendingItem)
+        {
+            if (inventory?.items == null || pendingItem?.Item == null)
+            {
+                return false;
+            }
+
+            var sourcePage = pendingItem.SourcePage;
+            if (sourcePage >= inventory.items.Length || sourcePage >= PlayerInventory.PAGES)
+            {
+                return false;
+            }
+
+            var pageContainer = inventory.items[sourcePage];
+            if (pageContainer == null)
+            {
+                return false;
+            }
+
+            var preferredClone = UtilityHelper.CloneItem(pendingItem.Item);
+            return pageContainer.tryAddItem(preferredClone, true);
         }
 
         private void DebugLog(string message)
@@ -245,3 +283,4 @@ namespace FFEmqo.ModifiedItemDrop.Drop
         }
     }
 }
+

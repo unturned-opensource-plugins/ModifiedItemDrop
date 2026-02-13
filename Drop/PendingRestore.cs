@@ -18,7 +18,7 @@ namespace FFEmqo.ModifiedItemDrop.Drop
 
         public Vector3 DeathPosition { get; }
 
-        public List<Item> InventoryItems { get; } = new List<Item>();
+        public List<PendingInventoryItem> InventoryItems { get; } = new List<PendingInventoryItem>();
 
         public List<ClothingItemSnapshot> ClothingItems { get; } = new List<ClothingItemSnapshot>();
 
@@ -30,4 +30,3 @@ namespace FFEmqo.ModifiedItemDrop.Drop
         public bool IsEmpty => InventoryItems.Count == 0 && ClothingItems.Count == 0 && ClothingContentsToRestore.Count == 0;
     }
 }
-
