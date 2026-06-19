@@ -239,3 +239,20 @@ rg -n "Rocket|Unturned|Unity|Steamworks|SDG" ModifiedItemDrop.Domain ModifiedIte
 Result: no matches.
 
 Review note: `Drop/V2DeathProcessingAdapter.cs` is now the runtime-facing seam that projects Unturned snapshots and delegates to the pure domain orchestrator. The next slice can execute Drop/Delete/Keep effects from the returned plan inside `DropService.HandlePlayerDying`.
+
+## Slice 15 — Death Outcome execution plan maps outcomes to runtime actions
+
+Behavior: v2 death processing must expose explicit runtime actions for each Player Asset Outcome so `DropService.HandlePlayerDying` can execute the canonical plan instead of reconstructing decisions in legacy processors. `Drop` maps to `Drop`, `Delete` maps to `Delete`, and `Keep` maps to `KeepForRestore`.
+
+Red: `dotnet test` failed because `DeathOutcomeExecutionPlanner` and `DeathOutcomeExecutionActionKind` did not exist.
+
+Green command:
+
+```bash
+DOTNET_ROOT=/opt/homebrew/opt/dotnet@8/libexec PATH=/opt/homebrew/opt/dotnet@8/bin:$PATH dotnet test ModifiedItemDrop.Domain.Tests/ModifiedItemDrop.Domain.Tests.csproj -v minimal
+DOTNET_ROOT=/opt/homebrew/opt/dotnet@8/libexec PATH=/opt/homebrew/opt/dotnet@8/bin:$PATH dotnet build ModifiedItemDrop.csproj -v minimal
+```
+
+Result: plugin build succeeded with `0 Warning(s), 0 Error(s)`; domain tests `Passed: 41, Failed: 0`.
+
+Review note: `DeathProcessingResult` now includes both the canonical `DeathOutcomePlan` and the runtime-oriented `DeathOutcomeExecutionPlan`. This keeps action selection in the pure domain model while leaving actual Unturned mutation inside adapter/runtime code.

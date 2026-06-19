@@ -23,6 +23,7 @@ public sealed class DeathProcessingOrchestratorTests
 
         var outcome = Assert.Single(result.Plan.Outcomes);
         Assert.Equal(PlayerAssetOutcomeKind.Drop, outcome.Kind);
+        Assert.Equal(DeathOutcomeExecutionActionKind.Drop, result.ExecutionPlan.ForAsset("inventory:0:0").Kind);
         Assert.False(result.HasPendingDeathSession);
     }
 
@@ -49,5 +50,6 @@ public sealed class DeathProcessingOrchestratorTests
         var kept = Assert.Single(result.DeathSession.KeptOutcomes);
         Assert.Equal("inventory:0:0", kept.Asset.Id);
         Assert.Equal(PlayerAssetOutcomeKind.Keep, kept.Kind);
+        Assert.Equal(DeathOutcomeExecutionActionKind.KeepForRestore, result.ExecutionPlan.ForAsset("inventory:0:0").Kind);
     }
 }
