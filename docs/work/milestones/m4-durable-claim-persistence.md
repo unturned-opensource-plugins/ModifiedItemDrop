@@ -24,3 +24,17 @@ DOTNET_ROOT=/opt/homebrew/opt/dotnet@8/libexec PATH=/opt/homebrew/opt/dotnet@8/b
 Green result: `Passed: 19, Failed: 0`.
 
 Review note: v2 storage layout starts at `<pluginDirectory>/claims/v2/claims.json` and intentionally does not read or write `<pluginDirectory>/claims.json`.
+
+## Slice 2 — Durable Claim Recovery removal
+
+Behavior: removing a recovered claim durably updates `claims/v2/claims.json`; reloading storage after removal must not resurrect the removed claim.
+
+Red: `dotnet test` failed because `DurableClaimStore.TryRemove` did not exist.
+
+Green command:
+
+```bash
+DOTNET_ROOT=/opt/homebrew/opt/dotnet@8/libexec PATH=/opt/homebrew/opt/dotnet@8/bin:$PATH dotnet test ModifiedItemDrop.Domain.Tests/ModifiedItemDrop.Domain.Tests.csproj -v minimal
+```
+
+Green result: `Passed: 20, Failed: 0`.

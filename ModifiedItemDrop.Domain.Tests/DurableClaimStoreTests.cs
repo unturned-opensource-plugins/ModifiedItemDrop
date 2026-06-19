@@ -39,6 +39,42 @@ public sealed class DurableClaimStoreTests
         }
     }
 
+
+    [Fact]
+    public void RemoveClaimDurablyUpdatesV2Storage()
+    {
+        var pluginDirectory = CreateTempDirectory();
+        try
+        {
+            var store = new DurableClaimStore(V2ClaimStoragePaths.ForPluginDirectory(pluginDirectory));
+            store.TryCreate(CreateClaim("claim-1"));
+            store.TryCreate(CreateClaim("claim-2"));
+
+            var result = store.TryRemove("claim-1");
+            var reloaded = new DurableClaimStore(V2ClaimStoragePaths.ForPluginDirectory(pluginDirectory)).Load();
+
+            Assert.True(result.Removed);
+            var remaining = Assert.Single(reloaded.Claims);
+            Assert.Equal("claim-2", remaining.Id);
+        }
+        finally
+        {
+            Directory.Delete(pluginDirectory, recursive: true);
+        }
+    }
+
+
+    private static DurableClaimRecord CreateClaim(string id)
+    {
+        return new DurableClaimRecord(
+            id,
+            steamId: 76561198000000001UL,
+            assets: new[]
+            {
+                new DurableClaimAsset(id + "-asset", itemId: 363, amount: 1, quality: 100, state: Array.Empty<byte>())
+            });
+    }
+
     private static string CreateTempDirectory()
     {
         var path = Path.Combine(Path.GetTempPath(), "mid-v2-claims-" + Guid.NewGuid().ToString("N"));

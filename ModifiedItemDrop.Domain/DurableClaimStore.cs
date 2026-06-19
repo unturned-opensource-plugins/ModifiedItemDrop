@@ -34,6 +34,31 @@ namespace FFEmqo.ModifiedItemDrop.Domain
             }
         }
 
+        public DurableClaimRemoveResult TryRemove(string claimId)
+        {
+            if (string.IsNullOrWhiteSpace(claimId))
+            {
+                throw new ArgumentException("Claim id must be provided.", nameof(claimId));
+            }
+
+            try
+            {
+                var claims = new List<DurableClaimRecord>(Load().Claims);
+                var removed = claims.RemoveAll(claim => claim.Id == claimId);
+                if (removed == 0)
+                {
+                    return DurableClaimRemoveResult.Failure("Claim '" + claimId + "' was not found.");
+                }
+
+                WriteAll(claims);
+                return DurableClaimRemoveResult.Success();
+            }
+            catch (Exception ex)
+            {
+                return DurableClaimRemoveResult.Failure(ex.Message);
+            }
+        }
+
         public DurableClaimLoadResult Load()
         {
             if (!File.Exists(_paths.PrimaryPath))
