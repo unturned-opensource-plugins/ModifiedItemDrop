@@ -315,3 +315,20 @@ DOTNET_ROOT=/opt/homebrew/opt/dotnet@8/libexec PATH=/opt/homebrew/opt/dotnet@8/b
 Result: plugin build succeeded with `0 Warning(s), 0 Error(s)`; domain tests `Passed: 43, Failed: 0`.
 
 Review note: `ConfigurationLoader.IsDeathProcessingEnabled` and `SafeModeReason` now reflect v2 Outcome Rules state. `DropService.HandlePlayerDying` returns before `ForceUnequipCurrentItem` or any runtime mutation when safe mode is active. Claim Recovery methods do not use this death-processing guard, preserving recovery availability when storage is healthy.
+
+## Slice 19 — Corrupt Claim storage enters degraded mode
+
+Behavior: if v2 Claim primary storage is corrupt and no trustworthy backup can be loaded, storage artifacts are preserved and the plugin enters Claim storage degraded mode. Degraded mode disables death processing and Claim Recovery rather than trusting an empty in-memory claim list or overwriting corrupt storage.
+
+Red: `dotnet test` failed because `DurableClaimLoadResult` did not expose `IsDegraded` or `ClaimRecoveryEnabled`.
+
+Green command:
+
+```bash
+DOTNET_ROOT=/opt/homebrew/opt/dotnet@8/libexec PATH=/opt/homebrew/opt/dotnet@8/bin:$PATH dotnet test ModifiedItemDrop.Domain.Tests/ModifiedItemDrop.Domain.Tests.csproj -v minimal
+DOTNET_ROOT=/opt/homebrew/opt/dotnet@8/libexec PATH=/opt/homebrew/opt/dotnet@8/bin:$PATH dotnet build ModifiedItemDrop.csproj -v minimal
+```
+
+Result: plugin build succeeded with `0 Warning(s), 0 Error(s)`; domain tests `Passed: 44, Failed: 0`.
+
+Review note: plugin load now checks v2 Claim storage health once, wires disabled Claim Recovery with a diagnostic reason when degraded, and prevents death processing through `DropService.SetClaimStorageHealth`. Legacy diagnostics/config commands remain outside this guard.

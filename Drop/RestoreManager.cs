@@ -223,6 +223,12 @@ namespace FFEmqo.ModifiedItemDrop.Drop
                 return;
             }
 
+            if (_v2ClaimRecoveryService != null && !_v2ClaimRecoveryService.RecoveryEnabled)
+            {
+                UtilityHelper.TryNotify(player, "Claim 存储处于降级模式，领取已禁用。请联系管理员检查存储文件。");
+                return;
+            }
+
             if (_v2ClaimRecoveryService != null &&
                 _v2ClaimRecoveryService.ClaimOldest(player, out var v2ItemsRestored, out var v2HasMore))
             {
@@ -264,6 +270,12 @@ namespace FFEmqo.ModifiedItemDrop.Drop
         {
             if (player == null || (_v2ClaimRecoveryService == null && _claimService == null))
             {
+                return;
+            }
+
+            if (_v2ClaimRecoveryService != null && !_v2ClaimRecoveryService.RecoveryEnabled)
+            {
+                UtilityHelper.TryNotify(player, "Claim 存储处于降级模式，领取已禁用。请联系管理员检查存储文件。");
                 return;
             }
 

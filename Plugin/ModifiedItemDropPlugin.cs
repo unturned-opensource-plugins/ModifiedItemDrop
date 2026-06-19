@@ -54,11 +54,18 @@ namespace FFEmqo.ModifiedItemDrop.Plugin
 
             _v2DurableClaimStore = new DurableClaimStore(V2ClaimStoragePaths.ForPluginDirectory(Directory));
             _v2DurableClaimCreator = new V2DurableClaimCreator(_v2DurableClaimStore);
-            _v2ClaimRecoveryService = new V2ClaimRecoveryService(_v2DurableClaimStore);
+            var v2ClaimLoadResult = _v2DurableClaimStore.Load();
+            var v2ClaimStorageHealthy = !v2ClaimLoadResult.IsDegraded;
+            var v2ClaimStorageReason = string.Join(" ", v2ClaimLoadResult.Warnings);
+            _v2ClaimRecoveryService = new V2ClaimRecoveryService(
+                _v2DurableClaimStore,
+                recoveryEnabled: v2ClaimStorageHealthy,
+                disabledReason: v2ClaimStorageReason);
 
             DropService.SetClaimService(_claimService);
             DropService.SetV2DurableClaimCreator(_v2DurableClaimCreator);
             DropService.SetV2ClaimRecoveryService(_v2ClaimRecoveryService);
+            DropService.SetClaimStorageHealth(v2ClaimStorageHealthy, v2ClaimStorageReason);
 
             _deathHandler = new PlayerDeathHandler(DropService, _claimService);
             _deathHandler.Enable();

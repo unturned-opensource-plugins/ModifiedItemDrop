@@ -129,18 +129,31 @@ namespace FFEmqo.ModifiedItemDrop.Domain
                 var warning = "Durable Claim primary storage is corrupt: " + _paths.PrimaryPath + "; preserved copy: " + corruptPath + ".";
                 if (File.Exists(_paths.BackupPath))
                 {
-                    return new DurableClaimLoadResult(
-                        ReadClaims(_paths.BackupPath),
-                        recoveredFromBackup: true,
-                        preservedCorruptPath: corruptPath,
-                        warnings: new[] { warning + " Recovered from backup: " + _paths.BackupPath + "." });
+                    try
+                    {
+                        return new DurableClaimLoadResult(
+                            ReadClaims(_paths.BackupPath),
+                            recoveredFromBackup: true,
+                            preservedCorruptPath: corruptPath,
+                            warnings: new[] { warning + " Recovered from backup: " + _paths.BackupPath + "." });
+                    }
+                    catch (JsonException)
+                    {
+                        return new DurableClaimLoadResult(
+                            Array.Empty<DurableClaimRecord>(),
+                            recoveredFromBackup: false,
+                            preservedCorruptPath: corruptPath,
+                            warnings: new[] { warning + " Backup is also corrupt: " + _paths.BackupPath + ". Claim storage degraded mode is active." },
+                            isDegraded: true);
+                    }
                 }
 
                 return new DurableClaimLoadResult(
                     Array.Empty<DurableClaimRecord>(),
                     recoveredFromBackup: false,
                     preservedCorruptPath: corruptPath,
-                    warnings: new[] { warning + " No backup was available." });
+                    warnings: new[] { warning + " No backup was available. Claim storage degraded mode is active." },
+                    isDegraded: true);
             }
         }
 

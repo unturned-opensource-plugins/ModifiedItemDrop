@@ -11,11 +11,24 @@ namespace FFEmqo.ModifiedItemDrop.Claim
     public sealed class V2ClaimRecoveryService
     {
         private readonly DurableClaimStore _store;
+        private readonly bool _recoveryEnabled;
+        private readonly string _disabledReason;
 
         public V2ClaimRecoveryService(DurableClaimStore store)
+            : this(store, recoveryEnabled: true, disabledReason: string.Empty)
+        {
+        }
+
+        public V2ClaimRecoveryService(DurableClaimStore store, bool recoveryEnabled, string disabledReason)
         {
             _store = store ?? throw new ArgumentNullException(nameof(store));
+            _recoveryEnabled = recoveryEnabled;
+            _disabledReason = disabledReason ?? string.Empty;
         }
+
+        public bool RecoveryEnabled => _recoveryEnabled;
+
+        public string DisabledReason => _disabledReason;
 
         public bool ClaimOldest(UnturnedPlayer player, out int itemsRestored, out bool hasMore)
         {
@@ -24,6 +37,12 @@ namespace FFEmqo.ModifiedItemDrop.Claim
 
             if (player?.Player?.inventory == null)
             {
+                return false;
+            }
+
+            if (!_recoveryEnabled)
+            {
+                LoggingHelper.LogWarning("[ModifiedItemDrop] V2 Durable Claim Recovery disabled: " + _disabledReason);
                 return false;
             }
 
@@ -49,6 +68,12 @@ namespace FFEmqo.ModifiedItemDrop.Claim
 
             if (player?.Player?.inventory == null)
             {
+                return false;
+            }
+
+            if (!_recoveryEnabled)
+            {
+                LoggingHelper.LogWarning("[ModifiedItemDrop] V2 Durable Claim Recovery disabled: " + _disabledReason);
                 return false;
             }
 

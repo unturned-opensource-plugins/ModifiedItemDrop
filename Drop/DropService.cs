@@ -36,6 +36,8 @@ namespace FFEmqo.ModifiedItemDrop.Drop
         private ClaimService _claimService;
         private IDurableClaimCreator _v2ClaimCreator;
         private V2ClaimRecoveryService _v2ClaimRecoveryService;
+        private bool _claimStorageDeathProcessingEnabled = true;
+        private string _claimStorageDisabledReason = string.Empty;
 
         public DropService(ConfigurationLoader configurationLoader)
         {
@@ -69,6 +71,12 @@ namespace FFEmqo.ModifiedItemDrop.Drop
         {
             _v2ClaimRecoveryService = claimRecoveryService;
             _restoreManager = new RestoreManager(_inventoryProcessor, _clothingProcessor, _claimService, _v2ClaimCreator, _v2ClaimRecoveryService, _configurationLoader);
+        }
+
+        public void SetClaimStorageHealth(bool deathProcessingEnabled, string disabledReason)
+        {
+            _claimStorageDeathProcessingEnabled = deathProcessingEnabled;
+            _claimStorageDisabledReason = disabledReason ?? string.Empty;
         }
 
         public void RefreshRules()
@@ -138,6 +146,12 @@ namespace FFEmqo.ModifiedItemDrop.Drop
             if (!_configurationLoader.IsDeathProcessingEnabled)
             {
                 LoggingHelper.LogWarning("Death processing skipped in safe mode for " + player.CSteamID + ": " + _configurationLoader.SafeModeReason);
+                return;
+            }
+
+            if (!_claimStorageDeathProcessingEnabled)
+            {
+                LoggingHelper.LogWarning("Death processing skipped because Claim storage is degraded for " + player.CSteamID + ": " + _claimStorageDisabledReason);
                 return;
             }
 

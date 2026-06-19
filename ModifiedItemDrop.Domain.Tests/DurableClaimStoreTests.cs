@@ -132,6 +132,36 @@ public sealed class DurableClaimStoreTests
     }
 
 
+    [Fact]
+    public void CorruptPrimaryAndCorruptBackupYieldsDegradedStorageWithoutOverwritingArtifacts()
+    {
+        var pluginDirectory = CreateTempDirectory();
+        try
+        {
+            var paths = V2ClaimStoragePaths.ForPluginDirectory(pluginDirectory);
+            Directory.CreateDirectory(paths.RootDirectory);
+            File.WriteAllText(paths.PrimaryPath, "{ primary corrupt");
+            File.WriteAllText(paths.BackupPath, "{ backup corrupt");
+            var store = new DurableClaimStore(paths);
+
+            var loaded = store.Load();
+
+            Assert.True(loaded.IsDegraded);
+            Assert.False(loaded.ClaimRecoveryEnabled);
+            Assert.Empty(loaded.Claims);
+            Assert.Equal("{ primary corrupt", File.ReadAllText(paths.PrimaryPath));
+            Assert.Equal("{ backup corrupt", File.ReadAllText(paths.BackupPath));
+            Assert.Contains(loaded.Warnings, warning => warning.Contains("Backup") && warning.Contains("corrupt"));
+            var corruptFile = Assert.Single(Directory.GetFiles(paths.CorruptDirectory, "claims.*.json"));
+            Assert.Equal("{ primary corrupt", File.ReadAllText(corruptFile));
+        }
+        finally
+        {
+            Directory.Delete(pluginDirectory, recursive: true);
+        }
+    }
+
+
 
     [Fact]
     public void CreateClaimReturnsFailureWhenDurableWriteCannotComplete()
