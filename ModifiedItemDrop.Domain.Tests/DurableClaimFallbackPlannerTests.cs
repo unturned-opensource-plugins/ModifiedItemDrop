@@ -30,4 +30,24 @@ public sealed class DurableClaimFallbackPlannerTests
         Assert.All(decisions, decision => Assert.Equal(DurableClaimFallbackKind.DropFallback, decision.Kind));
         Assert.All(decisions, decision => Assert.Contains("disk full", decision.Reason));
     }
+
+    [Fact]
+    public void FailedDurableClaimCreationUsesImmediateRestoreWhenAvailable()
+    {
+        var asset = new PlayerAsset("primary", PlayerAssetSlot.PrimaryWeapon, itemId: 363);
+        var keptOutcomes = new[]
+        {
+            new PlayerAssetOutcome(asset, PlayerAssetOutcomeKind.Keep, OutcomeRule.Keep("keep primary", 100, OutcomeTarget.Any(), chance: 1.0))
+        };
+
+        var decisions = new DurableClaimFallbackPlanner().PlanAfterCreateFailure(
+            keptOutcomes,
+            DurableClaimCreateResult.Failure("disk full"),
+            immediateRestoreAvailable: true);
+
+        var decision = Assert.Single(decisions);
+        Assert.Equal(DurableClaimFallbackKind.ImmediateRestore, decision.Kind);
+        Assert.Equal("primary", decision.Asset.Id);
+    }
+
 }

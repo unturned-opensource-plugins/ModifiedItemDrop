@@ -68,3 +68,17 @@ DOTNET_ROOT=/opt/homebrew/opt/dotnet@8/libexec PATH=/opt/homebrew/opt/dotnet@8/b
 Green result: `Passed: 22, Failed: 0`.
 
 Review note: this is the pure domain fallback decision. Runtime execution of Drop fallback remains part of the death/disconnect/unload integration milestone.
+
+## Slice 5 — Durable Claim failure immediate restore fallback
+
+Behavior: when Durable Claim creation fails but immediate restoration is available, unresolved kept Player Assets route to `ImmediateRestore` before Drop fallback.
+
+Result: this test passed immediately because Slice 4 implemented the immediate-restore branch while testing the drop branch. It is retained as explicit PRD coverage for the preferred fallback order.
+
+Verification command:
+
+```bash
+DOTNET_ROOT=/opt/homebrew/opt/dotnet@8/libexec PATH=/opt/homebrew/opt/dotnet@8/bin:$PATH dotnet test ModifiedItemDrop.Domain.Tests/ModifiedItemDrop.Domain.Tests.csproj -v minimal
+```
+
+Result: `Passed: 23, Failed: 0`.
