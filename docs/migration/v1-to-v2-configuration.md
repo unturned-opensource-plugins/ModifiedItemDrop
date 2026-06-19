@@ -163,6 +163,11 @@ V1 “not dropped” behavior usually maps to:
 </Rule>
 ```
 
+
+## V1 Claim data
+
+V2 Claim storage uses `claims/v2/claims.json` and does not import, delete, or rewrite the v1 root `claims.json`. Operators should resolve, claim, or archive existing v1 Claim data before upgrading to v2. Diagnostics may mention that a v1 `claims.json` exists, but it is not active v2 storage.
+
 ## Hands slot settings
 
 V1 hands slot size/placement behavior maps to v2 Inventory Capability rules, not Outcome Rules. Outcome Rules may still target `slot="Hands"` for death behavior, but hands slot capacity is a separate capability model.

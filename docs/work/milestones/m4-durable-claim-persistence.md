@@ -110,3 +110,15 @@ DOTNET_ROOT=/opt/homebrew/opt/dotnet@8/libexec PATH=/opt/homebrew/opt/dotnet@8/b
 ```
 
 Green result: `Passed: 24, Failed: 0`.
+
+## Slice 8 — Storage diagnostics paths and v1 Claim migration warning
+
+Behavior: v2 Claim storage exposes primary, backup, and corrupt paths for diagnostics. Migration documentation warns that v1 root `claims.json` is not imported into v2 storage.
+
+Verification command:
+
+```bash
+DOTNET_ROOT=/opt/homebrew/opt/dotnet@8/libexec PATH=/opt/homebrew/opt/dotnet@8/bin:$PATH dotnet test ModifiedItemDrop.Domain.Tests/ModifiedItemDrop.Domain.Tests.csproj -v minimal
+```
+
+Result: `Passed: 25, Failed: 0`.

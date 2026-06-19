@@ -118,6 +118,20 @@ public sealed class DurableClaimStoreTests
     }
 
 
+
+    [Fact]
+    public void V2ClaimStoragePathsExposePrimaryBackupAndCorruptDiagnosticsPaths()
+    {
+        var pluginDirectory = Path.Combine(Path.GetTempPath(), "mid-plugin");
+
+        var paths = V2ClaimStoragePaths.ForPluginDirectory(pluginDirectory);
+
+        Assert.Equal(Path.Combine(pluginDirectory, "claims", "v2", "claims.json"), paths.PrimaryPath);
+        Assert.Equal(Path.Combine(pluginDirectory, "claims", "v2", "claims.json.bak"), paths.BackupPath);
+        Assert.Equal(Path.Combine(pluginDirectory, "claims", "v2", "corrupt"), paths.CorruptDirectory);
+    }
+
+
     private static DurableClaimRecord CreateClaim(string id)
     {
         return new DurableClaimRecord(
