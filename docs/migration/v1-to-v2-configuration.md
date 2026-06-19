@@ -174,4 +174,17 @@ V1 hands slot size/placement behavior maps to v2 Inventory Capability rules, not
 
 ## Removed command aliases
 
-V2 uses `/mid` as the single command root. V1 flat aliases must not be reintroduced. Command migration details will be finalized with the v2 command-surface milestone.
+V2 uses `/mid` as the single command root. V1 flat aliases must not be reintroduced. The old `modifieditemdrop` command alias is removed. V1 flat commands fail with a migration hint instead of dispatching to old handlers.
+
+| v1 command | v2 replacement | Notes |
+|------------|----------------|-------|
+| `/mid reload` | `/mid config reload` | Requires `modifieditemdrop.config.reload`. |
+| `/mid preview [player]` | `/mid rules preview [player]` | Preview now reports v2 Outcome Rule decisions, not legacy chance sources. |
+| `/mid dump [player]` | `/mid inventory dump [player]` | Inventory diagnostics moved under the inventory group. |
+| `/mid claim` | `/mid claims recover oldest` | v2 Durable Claim recovery is explicit. Use `/mid claims recover all` to recover all pending v2 Claims. |
+| `/mid status` | `/mid diagnostics status` | Safe/degraded mode status moved under diagnostics. |
+| n/a | `/mid rules explain slot <PlayerAssetSlot>` | Explains the matched rule, configured chance, sampled roll when available, and final Outcome for a synthetic slot target. |
+| n/a | `/mid rules explain item <itemId>` | Explains the matched rule for a synthetic ItemID target. Item-specific rules take priority according to configured `priority`. |
+| n/a | `/mid diagnostics export` | Non-destructive diagnostic export; reports v2 Claim primary/backup/corrupt paths and does not reset or delete storage. |
+
+`/mid rules explain` distinguishes configured `Keep` from later runtime fallback: `Keep` means the rule decided to preserve the Player Asset; Durable Claim is only used later when immediate restore is unavailable or unsafe.

@@ -4,16 +4,16 @@
 [![.NET Framework](https://img.shields.io/badge/.NET%20Framework-4.8-purple.svg)](https://dotnet.microsoft.com/download/dotnet-framework)
 [![Unturned](https://img.shields.io/badge/Unturned-RocketMod-green.svg)](https://rocketmod.net)
 
-**ModifiedItemDrop** 是一个面向 Unturned RocketMod 服务器的高级掉落控制插件，支持分区掉落概率、衣物容器规则、持久化存储、调试日志以及热重载功能。
+**ModifiedItemDrop** v2 是一个面向 Unturned RocketMod 服务器的死亡物品结果控制插件，使用声明式 Outcome Rules、Durable Claim 持久化、safe/degraded mode、调试诊断以及热重载功能。
 
 **作者**: FF,Emqo
 
 ## ✨ 核心功能
 
 ### 🎯 智能掉落控制
-- **分区概率系统**：主武器、副武器、手持物品可分别设置掉落概率
-- **衣物容器规则**：背包、马甲、衬衫、裤子、帽子、面罩、眼镜等槽位独立配置
-- **自定义物品覆盖**：针对特定 ItemID 设置最高优先级的掉落概率
+- **声明式 Outcome Rules**：通过 v2 XML 明确配置 `Drop` / `Keep` / `Delete` / `Grant`
+- **Player Asset Outcome Model**：死亡处理先规划每个 Player Asset 的结果，再执行掉落、恢复或删除
+- **规则解释**：`/mid rules preview` 和 `/mid rules explain` 直接展示 v2 Outcome Rules 决策
 
 ### 📦 持久化存储系统
 - **服务器重启保留**：未领取的物品保存到 `claims.json`，重启后仍可领取
@@ -30,9 +30,9 @@
 
 ### 🔧 调试与管理工具
 - **详细调试日志**：输出 `[ModifiedItemDrop::Debug]`，包含概率来源、随机数与判定结果
-- **热重载**：`/mid reload` 在不停机的情况下重新加载配置
+- **热重载**：`/mid config reload` 在不停机的情况下重新加载配置
 - **自动热重载**：修改 XML 文件会被自动检测并重新加载
-- **运行期调试**：`/mid preview` 查看玩家当前装备概率，`/mid dump` 导出完整库存
+- **运行期调试**：`/mid rules preview` / `/mid rules explain` 查看 Outcome Rules 决策，`/mid inventory dump` 导出完整库存
 
 ## 📋 环境要求
 
@@ -53,7 +53,7 @@ dotnet build -c Release
 ### 2. 安装部署
 1. 复制 `bin/Release/net48/ModifiedItemDrop.dll` 到服务器 `Rocket/Plugins/`
 2. 复制 `ModifiedItemDrop.configuration.xml` 到 `Rocket/Plugins/ModifiedItemDrop/`
-3. 启动服务器或在游戏中执行 `/mid reload`
+3. 启动服务器或在游戏中执行 `/mid config reload`
 
 ### 3. 基础配置示例
 ```xml
@@ -67,23 +67,22 @@ dotnet build -c Release
     <AutoClaimOnJoin>true</AutoClaimOnJoin>
   </ClaimSettings>
 
-  <RuleSet>
-    <GlobalDefaultChance>0.5</GlobalDefaultChance>
-    <RegionChances>
-      <RegionChanceEntry><Region>PrimaryWeapon</Region><Chance>0.3</Chance></RegionChanceEntry>
-      <RegionChanceEntry><Region>SecondaryWeapon</Region><Chance>0.4</Chance></RegionChanceEntry>
-      <RegionChanceEntry><Region>Hands</Region><Chance>0.0</Chance></RegionChanceEntry>
-    </RegionChances>
-    <ClothingRules>
-      <ClothingSlot>
-        <Slot>Backpack</Slot>
-        <SlotDropChance>0.5</SlotDropChance>
-        <ContentsDropChance>0.5</ContentsDropChance>
-      </ClothingSlot>
-    </ClothingRules>
-  </RuleSet>
+  <OutcomeRulesXml><![CDATA[
+<OutcomeRules>
+  <Rule name="Primary weapons drop" priority="100">
+    <Target kind="Slot" slot="PrimaryWeapon" />
+    <Outcome kind="Drop" chance="1.0" />
+  </Rule>
+  <Rule name="Default keep" priority="0">
+    <Target kind="Any" />
+    <Outcome kind="Keep" />
+  </Rule>
+</OutcomeRules>
+  ]]></OutcomeRulesXml>
 </ModifiedItemDropConfiguration>
 ```
+
+> v2 不自动迁移 v1 `RuleSet`。升级前请阅读 `docs/migration/v1-to-v2-configuration.md` 并手动改写为 Outcome Rules。
 
 ## ⚙️ 配置详解
 
@@ -98,38 +97,35 @@ dotnet build -c Release
 | `OverLimitBehavior` | `DeleteOldest` | 达到上限时：`DeleteOldest` / `DropToGround` |
 | `ExpirationBehavior` | `Delete` | 过期时：`Delete` / `DropAtDeathPosition` |
 
-### DropRuleSet 配置项
+### OutcomeRulesXml 配置项
 
-| 配置项 | 类型 | 说明 |
-|--------|------|------|
-| `GlobalDefaultChance` | `double` | 全局默认掉落概率 (0.0-1.0) |
-| `RegionChances` | `List<RegionChanceEntry>` | 分区掉落概率配置 |
-| `CustomItemChances` | `List<ItemChanceEntry>` | 自定义物品掉落概率 |
-| `ClothingRules` | `List<ClothingSlotRule>` | 衣物槽位规则配置 |
+`OutcomeRulesXml` 是 v2 死亡处理的唯一规则入口。每条规则包含：
 
-### RegionChanceEntry 配置项
+| 元素 | 说明 |
+|------|------|
+| `Rule name` | 规则名，会出现在 `/mid rules explain` 输出中 |
+| `priority` | 优先级，高优先级先匹配；同优先级多条命中视为配置错误 |
+| `Target` | `Any`、`Slot`、`Item`、`ClothingContent` |
+| `Outcome` | `Drop`、`Keep`、`Delete`、`Grant` |
+| `chance` | 仅适用于概率型 `Drop` / `Keep` |
 
-| 配置项 | 类型 | 说明 |
-|--------|------|------|
-| `Region` | `string` | 槽位类型：`PrimaryWeapon`, `SecondaryWeapon`, `Hands`, `Inventory` |
-| `Chance` | `double` | 掉落概率 (0.0-1.0) |
-
-### ClothingSlotRule 配置项
-
-| 配置项 | 类型 | 说明 |
-|--------|------|------|
-| `Slot` | `string` | 衣物槽位：`Backpack`, `Vest`, `Shirt`, `Pants`, `Hat`, `Mask`, `Glasses` |
-| `SlotDropChance` | `double` | 衣物本身的掉落概率 (0.0-1.0) |
-| `ContentsDropChance` | `double` | 衣物内物品的掉落概率 (0.0-1.0) |
+v2 配置必须包含显式 catch-all 规则，例如 `Target kind="Any"`。
 
 ## 🎮 命令参考
 
 | 命令 | 权限 | 说明 |
 |------|------|------|
-| `/mid reload` | `modifieditemdrop.reload` | 热重载配置文件 |
-| `/mid preview [player]` | `modifieditemdrop.preview` | 查看玩家物品掉落概率 |
-| `/mid dump [player]` | `modifieditemdrop.preview` | 导出玩家完整库存信息 |
-| `/mid claim` | `modifieditemdrop.claim` | 领取待发放物品 |
+| `/mid config reload` | `modifieditemdrop.config.reload` | 热重载配置文件 |
+| `/mid rules preview [player]` | `modifieditemdrop.rules.preview` | 预览玩家当前 Player Assets 的 v2 Outcome Rule 决策 |
+| `/mid rules explain slot <PlayerAssetSlot>` | `modifieditemdrop.rules.explain` | 解释某个槽位目标会命中的规则、概率和最终 Outcome |
+| `/mid rules explain item <itemId>` | `modifieditemdrop.rules.explain` | 解释某个 ItemID 目标会命中的规则、概率和最终 Outcome |
+| `/mid inventory dump [player]` | `modifieditemdrop.inventory.dump` | 导出玩家完整库存信息 |
+| `/mid claims recover oldest` | `modifieditemdrop.claims.recover` | 领取最旧一条 v2 Durable Claim |
+| `/mid claims recover all` | `modifieditemdrop.claims.recover` | 领取全部 v2 Durable Claims |
+| `/mid diagnostics status` | `modifieditemdrop.diagnostics.status` | 查看 safe/degraded mode 与 Claim Recovery 状态 |
+| `/mid diagnostics export` | `modifieditemdrop.diagnostics.export` | 输出非破坏性诊断信息和 v2 Claim storage 路径 |
+
+> v1 flat commands `/mid reload`、`/mid preview`、`/mid dump`、`/mid claim` 在 v2 中不会成功执行，只会返回迁移提示。
 
 ## 🏗️ 项目架构
 
@@ -141,18 +137,18 @@ ModifiedItemDrop/
 │   └── ClaimStorage.cs      # JSON 数据存储
 ├── Configuration/            # 配置系统
 │   ├── ClaimSettings.cs     # 配置模型
-│   ├── ConfigurationLoader.cs # 配置加载器
-│   ├── DropRuleSet.cs       # 掉落规则集
+│   ├── ConfigurationLoader.cs # v2 Outcome Rules 加载与 safe mode
 │   └── ModifiedItemDropConfiguration.cs # 主配置
 ├── Drop/                    # 掉落逻辑
-│   ├── ChanceResolver.cs    # 概率解析器
-│   ├── DropService.cs       # 掉落服务
-│   ├── InventoryProcessor.cs # 背包处理
-│   ├── ClothingProcessor.cs # 衣物处理
-│   └── RestoreManager.cs    # 恢复管理
+│   ├── DropService.cs       # v2 死亡处理编排
+│   ├── V2DeathProcessingAdapter.cs
+│   ├── V2QuickSlotExecutionAdapter.cs
+│   ├── V2ClothingExecutionAdapter.cs
+│   └── RestoreManager.cs    # 恢复 / Claim fallback 管理
 ├── Extensions/              # 扩展方法
 │   └── PlayerExtensions.cs  # 玩家扩展
-├── Models/                  # 数据模型
+├── ModifiedItemDrop.Domain/ # 纯领域模型：Player Asset、Outcome Rules、Durable Claim
+├── Models/                  # 运行时快照模型
 │   ├── ClaimRecord.cs       # 持久化记录
 │   ├── ClothingItemSnapshot.cs
 │   ├── InventoryItemSnapshot.cs
@@ -165,6 +161,7 @@ ModifiedItemDrop/
 │   ├── UtilityHelper.cs
 │   ├── LoggingHelper.cs
 │   └── ClothingOperationHelper.cs
+├── docs/migration/v1-to-v2-configuration.md
 ├── ModifiedItemDrop.configuration.xml
 └── README.md
 ```
@@ -172,41 +169,37 @@ ModifiedItemDrop/
 ### 核心工作流程
 
 1. **初始化阶段** (`ModifiedItemDropPlugin`)
-   - 初始化 DropService 和 ClaimService
+   - 初始化 DropService、v2 Durable Claim Store 和 Claim Recovery
+   - 加载 Outcome Rules；无效配置进入 safe mode
    - 设置 FileSystemWatcher 监听配置变化
 
 2. **玩家死亡** (`PlayerDeathHandler` → `DropService`)
    - 捕获玩家库存和衣物快照
-   - 通过 `ChanceResolver` 查询每个物品的掉落概率
-   - 根据概率决定掉落或保留物品
+   - 通过 v2 `DeathOutcomePlanner` 规划每个 Player Asset 的 `Drop` / `Keep` / `Delete` 结果
+   - 根据 `DeathOutcomeExecutionPlan` 执行掉落、恢复或删除
 
 3. **玩家复活** (`PlayerDeathHandler` → `DropService` → `ClaimService`)
-   - 将保留物品恢复到玩家背包
-   - 溢出物品保存到 ClaimService
-   - 生成 ClaimRecord 持久化到 claims.json
+   - 将 `Keep` Outcome 的物品恢复到玩家背包
+   - 溢出或断线/卸载场景转入 v2 Durable Claim
+   - v2 Claim 数据保存到 `claims/v2/claims.json`，并维护 backup/corrupt 诊断路径
 
 4. **Claim 管理** (`ClaimService`)
    - 玩家上线时检查待领取物品并提示
    - 执行过期检查（删除或掉落到死亡位置）
    - 强制执行玩家 Claim 数量上限
 
-### 概率优先级系统
+### Outcome Rule 优先级系统
 
-**武器槽（Page 0-2）优先级（从高到低）：**
-1. 配置中的 ItemID 特定概率 (`CustomItemChances`)
-2. 配置中的分区概率 (`RegionChances`)
-3. 全局默认概率 (`GlobalDefaultChance`)
-
-**衣物内容物（Page 3-6）处理方式：**
-- 完全由 `ClothingRules` 控制
-- 不受 `GlobalDefaultChance` 和 `RegionChances` 影响
-- 根据 `ContentsDropChance` 决定掉落概率
+1. v2 按 `priority` 从高到低匹配规则。
+2. 同一 Player Asset 在同一优先级命中多条规则会进入配置错误/safe mode。
+3. 概率型 `Drop` / `Keep` 会记录 sampled roll，供 `/mid rules explain` 诊断。
+4. 配置必须包含显式 catch-all 规则，避免隐式默认行为。
 
 ## 📊 数据存储
 
 | 数据类型 | 存储位置 | 文件格式 |
 |----------|----------|----------|
-| Claim 数据 | `Rocket/Plugins/ModifiedItemDrop/claims.json` | JSON |
+| v2 Durable Claim 数据 | `Rocket/Plugins/ModifiedItemDrop/claims/v2/claims.json` | JSON |
 | 配置文件 | `Rocket/Plugins/ModifiedItemDrop/ModifiedItemDrop.configuration.xml` | XML |
 
 ## 🧪 开发与测试
@@ -222,10 +215,10 @@ ModifiedItemDrop/
 2. 使用 `/give <itemID>` 添加测试物品
 3. 使用 `/kill` 触发死亡测试
 4. 检查服务器控制台 `[ModifiedItemDrop::Debug]` 日志
-5. 使用 `/mid preview` 验证概率计算
+5. 使用 `/mid rules preview` 或 `/mid rules explain` 验证 Outcome Rules 决策
 
 ### 常见问题排查
-- **概率不生效**：检查配置文件路径和 XML 格式
+- **规则不生效**：检查 `OutcomeRulesXml`、catch-all 规则和 `/mid diagnostics status`
 - **Claim 不工作**：检查 `EnableClaim` 设置和文件权限
 - **自动重载不工作**：检查文件系统权限
 

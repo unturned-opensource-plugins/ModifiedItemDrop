@@ -32,6 +32,7 @@ public sealed class MidCommandRouterTests
 
     [Theory]
     [InlineData("rules preview", MidCommandRouteKind.RulesPreview)]
+    [InlineData("rules explain slot PrimaryWeapon", MidCommandRouteKind.RulesExplain)]
     [InlineData("inventory dump", MidCommandRouteKind.InventoryDump)]
     [InlineData("claims recover oldest", MidCommandRouteKind.ClaimsRecover)]
     [InlineData("diagnostics status", MidCommandRouteKind.DiagnosticsStatus)]

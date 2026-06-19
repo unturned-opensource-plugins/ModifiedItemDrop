@@ -6,9 +6,10 @@ namespace FFEmqo.ModifiedItemDrop.Domain
         RemovedV1Command = 1,
         ConfigReload = 2,
         RulesPreview = 3,
-        InventoryDump = 4,
-        ClaimsRecover = 5,
-        DiagnosticsStatus = 6,
-        DiagnosticsExport = 7
+        RulesExplain = 4,
+        InventoryDump = 5,
+        ClaimsRecover = 6,
+        DiagnosticsStatus = 7,
+        DiagnosticsExport = 8
     }
 }

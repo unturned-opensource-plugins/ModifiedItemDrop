@@ -49,6 +49,12 @@ namespace FFEmqo.ModifiedItemDrop.Domain
                 return Accepted(MidCommandRouteKind.RulesPreview, parts.Skip(2));
             }
 
+            if (parts.Count >= 2 && root.Equals("rules", StringComparison.OrdinalIgnoreCase)
+                && parts[1].Equals("explain", StringComparison.OrdinalIgnoreCase))
+            {
+                return Accepted(MidCommandRouteKind.RulesExplain, parts.Skip(2));
+            }
+
             if (parts.Count >= 2 && root.Equals("inventory", StringComparison.OrdinalIgnoreCase)
                 && parts[1].Equals("dump", StringComparison.OrdinalIgnoreCase))
             {
@@ -90,7 +96,7 @@ namespace FFEmqo.ModifiedItemDrop.Domain
             return new MidCommandRouteResult(
                 accepted: false,
                 kind: MidCommandRouteKind.Usage,
-                message: "Usage: /mid config reload | /mid rules preview [player] | /mid inventory dump [player] | /mid claims recover [oldest|all] | /mid diagnostics status",
+                message: "Usage: /mid config reload | /mid rules preview [player] | /mid rules explain <slot|item> <target> | /mid inventory dump [player] | /mid claims recover [oldest|all] | /mid diagnostics status | /mid diagnostics export",
                 arguments: Array.Empty<string>());
         }
     }

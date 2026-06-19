@@ -57,3 +57,32 @@ rg -n "Rocket|Unturned|Unity|Steamworks|SDG" ModifiedItemDrop.Domain ModifiedIte
 Result: plugin build succeeded with `0 Warning(s), 0 Error(s)`; domain tests `Passed: 56, Failed: 0`; domain boundary scan returned no runtime API matches.
 
 Review note: legacy `ChanceResolver` still exists for old runtime collaborators that have not yet been deleted, but preview no longer calls `DropService.PeekChance`, `ResolveClothingRule`, or `CurrentRuleSet`-based clothing preview logic. Later cleanup slices should remove unused public v1 chance inspection APIs once callers are gone.
+
+## Slice 3 — Rules explain command and command migration docs
+
+Behavior: `/mid rules explain slot <PlayerAssetSlot>` and `/mid rules explain item <itemId>` now route through the v2 command surface. The explanation output is based on `PlayerAssetOutcome.RuleEvaluations`, so it can report matched/missed probabilistic rules, configured chance, sampled roll when present, final Outcome, and the distinction between configured `Keep` and later Durable Claim fallback.
+
+Red:
+
+```bash
+DOTNET_ROOT=/opt/homebrew/opt/dotnet@8/libexec PATH=/opt/homebrew/opt/dotnet@8/bin:$PATH dotnet test ModifiedItemDrop.Domain.Tests/ModifiedItemDrop.Domain.Tests.csproj -v minimal --filter MidCommandRouterTests
+# failed: MidCommandRouteKind.RulesExplain did not exist
+
+DOTNET_ROOT=/opt/homebrew/opt/dotnet@8/libexec PATH=/opt/homebrew/opt/dotnet@8/bin:$PATH dotnet test ModifiedItemDrop.Domain.Tests/ModifiedItemDrop.Domain.Tests.csproj -v minimal --filter OutcomeRuleExplanationFormatterTests
+# failed: OutcomeRuleExplanationFormatter.FormatExplain did not exist
+
+DOTNET_ROOT=/opt/homebrew/opt/dotnet@8/libexec PATH=/opt/homebrew/opt/dotnet@8/bin:$PATH dotnet test ModifiedItemDrop.Domain.Tests/ModifiedItemDrop.Domain.Tests.csproj -v minimal --filter MidRulesExplainTargetParserTests
+# failed: MidRulesExplainTargetParser did not exist; item target then failed until implemented
+```
+
+Green command:
+
+```bash
+DOTNET_ROOT=/opt/homebrew/opt/dotnet@8/libexec PATH=/opt/homebrew/opt/dotnet@8/bin:$PATH dotnet test ModifiedItemDrop.Domain.Tests/ModifiedItemDrop.Domain.Tests.csproj -v minimal
+DOTNET_ROOT=/opt/homebrew/opt/dotnet@8/libexec PATH=/opt/homebrew/opt/dotnet@8/bin:$PATH dotnet build ModifiedItemDrop.csproj -v minimal
+rg -n "Rocket|Unturned|Unity|Steamworks|SDG" ModifiedItemDrop.Domain ModifiedItemDrop.Domain.Tests -g'*.cs' || true
+```
+
+Result: plugin build succeeded with `0 Warning(s), 0 Error(s)`; domain tests `Passed: 60, Failed: 0`; domain boundary scan returned no runtime API matches.
+
+Docs: README command reference now uses v2 grouped commands, and `docs/migration/v1-to-v2-configuration.md` maps each removed v1 flat command to its v2 replacement. The migration guide explicitly states that diagnostics export is non-destructive and that configured `Keep` is distinct from later Durable Claim fallback.

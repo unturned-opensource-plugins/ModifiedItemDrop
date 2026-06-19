@@ -145,6 +145,23 @@ namespace FFEmqo.ModifiedItemDrop.Drop
             return plan.Outcomes.Select(OutcomeRuleExplanationFormatter.FormatPreviewLine).ToList();
         }
 
+        public IEnumerable<string> ExplainOutcomeRuleTarget(IEnumerable<string> args)
+        {
+            if (!_configurationLoader.IsDeathProcessingEnabled)
+            {
+                return new[] { "Outcome Rules: unavailable; safe mode active. " + _configurationLoader.SafeModeReason };
+            }
+
+            var target = MidRulesExplainTargetParser.Parse(args);
+            if (!target.Accepted)
+            {
+                return new[] { target.Message };
+            }
+
+            var outcome = new DeathOutcomePlanner().Plan(target.Asset, _configurationLoader.CurrentOutcomeRules);
+            return new[] { OutcomeRuleExplanationFormatter.FormatExplain(outcome) };
+        }
+
         public void SetRegionOverride(SlotType slotType, double chance)
         {
             _chanceResolver.SetRegionOverride(slotType.ToString(), UtilityHelper.ClampChance(chance));

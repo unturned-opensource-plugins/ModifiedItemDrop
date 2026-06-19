@@ -26,6 +26,7 @@ namespace FFEmqo.ModifiedItemDrop.Plugin
         {
             "modifieditemdrop.config.reload",
             "modifieditemdrop.rules.preview",
+            "modifieditemdrop.rules.explain",
             "modifieditemdrop.inventory.dump",
             "modifieditemdrop.claims.recover",
             "modifieditemdrop.diagnostics.status",
@@ -54,6 +55,9 @@ namespace FFEmqo.ModifiedItemDrop.Plugin
                     break;
                 case MidCommandRouteKind.RulesPreview:
                     HandlePreview(caller, route.Arguments.ToArray());
+                    break;
+                case MidCommandRouteKind.RulesExplain:
+                    HandleRulesExplain(caller, route.Arguments.ToArray());
                     break;
                 case MidCommandRouteKind.InventoryDump:
                     HandleDump(caller, route.Arguments.ToArray());
@@ -139,6 +143,28 @@ namespace FFEmqo.ModifiedItemDrop.Plugin
             }
 
             foreach (var line in InventoryInspector.BuildPreviewLines(target, dropService))
+            {
+                SendMessage(caller, line, Color.cyan);
+            }
+        }
+
+        private static void HandleRulesExplain(IRocketPlayer caller, string[] args)
+        {
+            if (!HasPermission(caller, "modifieditemdrop.rules.explain"))
+            {
+                SendMessage(caller, "You do not have permission to explain Outcome Rules.", Color.red);
+                return;
+            }
+
+            var plugin = ModifiedItemDropPlugin.Instance;
+            var dropService = plugin?.DropService;
+            if (plugin == null || dropService == null)
+            {
+                SendMessage(caller, "ModifiedItemDrop is not ready.", Color.red);
+                return;
+            }
+
+            foreach (var line in dropService.ExplainOutcomeRuleTarget(args))
             {
                 SendMessage(caller, line, Color.cyan);
             }
