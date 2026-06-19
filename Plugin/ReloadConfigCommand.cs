@@ -73,7 +73,7 @@ namespace FFEmqo.ModifiedItemDrop.Plugin
                     HandleStatus(caller);
                     break;
                 case MidCommandRouteKind.DiagnosticsExport:
-                    HandleDiagnosticsExport(caller);
+                    HandleDiagnosticsExport(caller, route.Arguments.ToArray());
                     break;
                 default:
                     SendUsage(caller);
@@ -299,7 +299,7 @@ namespace FFEmqo.ModifiedItemDrop.Plugin
                 : "Claim Recovery: disabled by Claim storage degraded mode.", dropService.IsV2ClaimRecoveryEnabled ? Color.green : Color.red);
         }
 
-        private static void HandleDiagnosticsExport(IRocketPlayer caller)
+        private static void HandleDiagnosticsExport(IRocketPlayer caller, string[] args)
         {
             if (!HasPermission(caller, MidCommandPermissionPolicy.DiagnosticsExport) && !HasPermission(caller, MidCommandPermissionPolicy.DiagnosticsStatus))
             {
@@ -330,6 +330,15 @@ namespace FFEmqo.ModifiedItemDrop.Plugin
                 SendMessage(caller, $"V2 Claim primary: {paths.PrimaryPath}", Color.cyan);
                 SendMessage(caller, $"V2 Claim backup: {paths.BackupPath}", Color.cyan);
                 SendMessage(caller, $"V2 Claim corrupt directory: {paths.CorruptDirectory}", Color.cyan);
+            }
+
+            if (args != null && args.Length > 0)
+            {
+                var target = ResolveTarget(caller, args, "diagnostics export");
+                if (target != null)
+                {
+                    SendMessage(caller, dropService.ExplainHandsSlotCapability(target), Color.cyan);
+                }
             }
         }
 

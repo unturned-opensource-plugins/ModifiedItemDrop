@@ -1,271 +1,65 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  ╔════════════════════════════════════════════════════════════════════════════╗
-  ║                    ModifiedItemDrop 插件配置文件                            ║
-  ╚════════════════════════════════════════════════════════════════════════════╝
+  ModifiedItemDrop v2.0.0 configuration
 
-  ==========================================
-  概率说明
-  ==========================================
-  - 概率字段均为 0~1 的浮点数：
-      0.0 = 永远不掉落（保留给玩家）
-      0.5 = 50% 几率掉落
-      1.0 = 必定掉落
-  - 修改后可以在游戏内执行 /mid reload 即时生效。
-
-  ==========================================
-  掉落规则优先级（从高到低）
-  ==========================================
-  【武器槽 (page 0-2)】
-    1. CustomItemChances（特定物品ID）
-    2. RegionChances（PrimaryWeapon / SecondaryWeapon / Hands）
-    3. GlobalDefaultChance
-
-  【衣服内物品 (page 3-6)】
-    只使用 ClothingRules 配置，不受 GlobalDefaultChance 和 RegionChances 影响
-    根据 ContentsDropChance 决定：
-    - 0.0 = 全部保留
-    - 0.5 = 50% 掉落
-    - 1.0 = 全部掉落
-
-  ==========================================
-  可用命令
-  ==========================================
-      /mid reload         重新加载配置文件
-      /mid preview        预览玩家当前装备与手槽的概率来源
-      /mid dump           导出玩家完整库存信息
-      /mid claim          领取待发放物品
+  Breaking upgrade notes:
+  - v2 death behavior is configured with OutcomeRulesXml.
+  - v1 RuleSet, RegionChances, CustomItemChances, ClothingRules, DeleteOnDeathItems,
+    and flat /mid commands are not valid v2 operator surfaces.
+  - Read docs/migration/v1-to-v2-configuration.md before upgrading an existing server.
 -->
 <ModifiedItemDropConfiguration xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
-
-  <!-- ╔════════════════════════════════════════════════════════════════════╗ -->
-  <!-- ║                         调试设置                                    ║ -->
-  <!-- ╚════════════════════════════════════════════════════════════════════╝ -->
-
-  <!-- 是否启用调试日志（true 会在控制台输出每件物品的判定过程）
-       建议：正式运营时设为 false，排查问题时设为 true -->
   <EnableDebugLogging>false</EnableDebugLogging>
-
-  <!-- 是否额外输出衣物内部物品的掉落判定
-       需要先启用 EnableDebugLogging
-       建议：仅在排查衣物容器问题时开启 -->
   <EnableClothingContentsDebugLogging>false</EnableClothingContentsDebugLogging>
 
-  <!-- ╔════════════════════════════════════════════════════════════════════╗ -->
-  <!-- ║                      Claim 持久化设置                               ║ -->
-  <!-- ╚════════════════════════════════════════════════════════════════════╝ -->
-  <!--
-    当玩家复活时背包空间不足，或玩家断线时仍有待发放物品，
-    这些物品会被保存到 claims.json 文件中，服务器重启后仍可领取。
-  -->
+  <OutcomeRulesXml><![CDATA[
+<OutcomeRules>
+  <Rule name="Primary weapons drop" priority="100">
+    <Target kind="Slot" slot="PrimaryWeapon" />
+    <Outcome kind="Drop" chance="0.30" />
+  </Rule>
+
+  <Rule name="Secondary weapons drop" priority="100">
+    <Target kind="Slot" slot="SecondaryWeapon" />
+    <Outcome kind="Drop" chance="0.40" />
+  </Rule>
+
+  <Rule name="Hands keep" priority="100">
+    <Target kind="Slot" slot="Hands" />
+    <Outcome kind="Keep" />
+  </Rule>
+
+  <Rule name="Backpack contents drop" priority="100">
+    <Target kind="ClothingContent" slot="Backpack" />
+    <Outcome kind="Drop" chance="0.50" />
+  </Rule>
+
+  <Rule name="Default keep" priority="0">
+    <Target kind="Any" />
+    <Outcome kind="Keep" />
+  </Rule>
+</OutcomeRules>
+  ]]></OutcomeRulesXml>
+
   <ClaimSettings>
-    <!-- 是否启用 Claim 持久化功能
-         false = 禁用所有持久化，断线/重启后丢失未领取物品 -->
     <EnableClaim>true</EnableClaim>
-
-    <!-- 每个玩家最多保存的 Claim 数量
-         0 = 无限制
-         超出上限时按 OverLimitBehavior 处理 -->
     <MaxClaimsPerPlayer>10</MaxClaimsPerPlayer>
-
-    <!-- Claim 过期时间（分钟）
-         0     = 永不过期
-         1440  = 24 小时（默认）
-         10080 = 7 天 -->
     <ExpirationMinutes>1440</ExpirationMinutes>
-
-    <!-- 玩家上线时是否自动领取所有待发放物品
-         true = 自动领取（默认）
-         false = 需要玩家手动使用 /mid claim 领取 -->
     <AutoClaimOnJoin>true</AutoClaimOnJoin>
-
-    <!-- 达到 MaxClaimsPerPlayer 上限时的处理方式：
-         - DeleteOldest : 删除最旧的 Claim 腾出空间（默认）
-         - DropToGround : 掉落到死亡位置 -->
     <OverLimitBehavior>DeleteOldest</OverLimitBehavior>
-
-    <!-- Claim 过期时的处理方式：
-         - Delete : 直接删除过期物品（默认）
-         - DropAtDeathPosition : 掉落到死亡位置 -->
     <ExpirationBehavior>Delete</ExpirationBehavior>
   </ClaimSettings>
 
-  <!-- ╔════════════════════════════════════════════════════════════════════╗ -->
-  <!-- ║                         掉落规则                                    ║ -->
-  <!-- ╚════════════════════════════════════════════════════════════════════╝ -->
-  <RuleSet>
-
-    <!-- ══════════════════════════════════════════════════════════════════ -->
-    <!-- 全局默认概率                                                        -->
-    <!-- ══════════════════════════════════════════════════════════════════ -->
-    <!-- 当武器槽物品未命中 RegionChances 或 CustomItemChances 时使用
-         注意：衣服内物品不受此设置影响，由 ClothingRules 单独控制 -->
-    <GlobalDefaultChance>0.5</GlobalDefaultChance>
-
-    <!-- ══════════════════════════════════════════════════════════════════ -->
-    <!-- 武器槽掉落概率                                                      -->
-    <!-- ══════════════════════════════════════════════════════════════════ -->
-    <!-- 控制主武器槽 (page 0)、副武器槽 (page 1) 和手持物品 (page 2)
-         衣服内物品由下方 ClothingRules 控制 -->
-    <RegionChances>
-      <!-- 主武器槽 (page 0)：手持的主武器 -->
-      <RegionChanceEntry>
-        <Region>PrimaryWeapon</Region>
-        <Chance>0.3</Chance>
-      </RegionChanceEntry>
-
-      <!-- 副武器槽 (page 1)：手持的副武器 -->
-      <RegionChanceEntry>
-        <Region>SecondaryWeapon</Region>
-        <Chance>0.4</Chance>
-      </RegionChanceEntry>
-
-      <!-- 手持物品 (page 2)：手中拿着的物品 -->
-      <RegionChanceEntry>
-        <Region>Hands</Region>
-        <Chance>0.5</Chance>
-      </RegionChanceEntry>
-    </RegionChances>
-
-    <!-- ══════════════════════════════════════════════════════════════════ -->
-    <!-- 自定义物品掉落概率                                                  -->
-    <!-- ══════════════════════════════════════════════════════════════════ -->
-    <!-- 针对特定 ItemID 设置掉落概率，优先级最高
-         注意：目前仅对武器槽生效，衣服内物品使用 ClothingRules -->
-    <CustomItemChances>
-      <!-- 示例：物品ID 363（蜜獾）80% 概率掉落
-      <ItemChanceEntry>
-        <ItemID>363</ItemID>
-        <Chance>0.8</Chance>
-      </ItemChanceEntry>
-      -->
-
-      <!-- 示例：物品ID 1382（夜视仪）永不掉落
-      <ItemChanceEntry>
-        <ItemID>1382</ItemID>
-        <Chance>0</Chance>
-      </ItemChanceEntry>
-      -->
-    </CustomItemChances>
-
-    <!-- ══════════════════════════════════════════════════════════════════ -->
-    <!-- 衣服掉落规则                                                        -->
-    <!-- ══════════════════════════════════════════════════════════════════ -->
-    <!--
-      控制衣服本身和衣服内物品的掉落，完全独立于 GlobalDefaultChance
-
-      每个 ClothingSlot 配置项说明：
-      ┌─────────────────────┬────────────────────────────────────────────┐
-      │ Slot                │ 衣服槽位 (Shirt/Pants/Backpack/Vest/       │
-      │                     │           Hat/Mask/Glasses)                │
-      ├─────────────────────┼────────────────────────────────────────────┤
-      │ SlotDropChance      │ 衣服本身的掉落概率                          │
-      ├─────────────────────┼────────────────────────────────────────────┤
-      │ ContentsDropChance  │ 衣服内物品的掉落概率                        │
-      │                     │   0.0 = 全部保留                           │
-      │                     │   0.5 = 50% 掉落                           │
-      │                     │   1.0 = 全部掉落                           │
-      └─────────────────────┴────────────────────────────────────────────┘
-
-      衣服槽位对应关系：
-      ┌──────────┬──────────┬──────────────────────────┐
-      │ 槽位     │ Page     │ 说明                     │
-      ├──────────┼──────────┼──────────────────────────┤
-      │ Shirt    │ page 5   │ 衬衫（内部可存储物品）    │
-      │ Pants    │ page 6   │ 裤子（内部可存储物品）    │
-      │ Backpack │ page 3   │ 背包（内部可存储物品）    │
-      │ Vest     │ page 4   │ 马甲（内部可存储物品）    │
-      │ Hat      │ -        │ 帽子（通常无存储空间）    │
-      │ Mask     │ -        │ 面罩（通常无存储空间）    │
-      │ Glasses  │ -        │ 眼镜（通常无存储空间）    │
-      └──────────┴──────────┴──────────────────────────┘
-    -->
-    <ClothingRules>
-      <!-- 衬衫：不掉落衣服，内容物 35% 掉落 -->
-      <ClothingSlot>
-        <Slot>Shirt</Slot>
-        <SlotDropChance>0</SlotDropChance>
-        <ContentsDropChance>0.35</ContentsDropChance>
-      </ClothingSlot>
-
-      <!-- 裤子：不掉落衣服，内容物 35% 掉落 -->
-      <ClothingSlot>
-        <Slot>Pants</Slot>
-        <SlotDropChance>0</SlotDropChance>
-        <ContentsDropChance>0.35</ContentsDropChance>
-      </ClothingSlot>
-
-      <!-- 背包：50% 掉落背包，内容物 50% 掉落 -->
-      <ClothingSlot>
-        <Slot>Backpack</Slot>
-        <SlotDropChance>0.5</SlotDropChance>
-        <ContentsDropChance>0.5</ContentsDropChance>
-      </ClothingSlot>
-
-      <!-- 马甲：60% 掉落马甲，内容物 45% 掉落 -->
-      <ClothingSlot>
-        <Slot>Vest</Slot>
-        <SlotDropChance>0.6</SlotDropChance>
-        <ContentsDropChance>0.45</ContentsDropChance>
-      </ClothingSlot>
-
-      <!-- 帽子：30% 掉落（无存储空间） -->
-      <ClothingSlot>
-        <Slot>Hat</Slot>
-        <SlotDropChance>0.3</SlotDropChance>
-      </ClothingSlot>
-
-      <!-- 面罩：30% 掉落（无存储空间） -->
-      <ClothingSlot>
-        <Slot>Mask</Slot>
-        <SlotDropChance>0.3</SlotDropChance>
-      </ClothingSlot>
-
-      <!-- 眼镜：30% 掉落（无存储空间） -->
-      <ClothingSlot>
-        <Slot>Glasses</Slot>
-        <SlotDropChance>0.3</SlotDropChance>
-      </ClothingSlot>
-    </ClothingRules>
-
-  </RuleSet>
-
-  <!-- ╔════════════════════════════════════════════════════════════════════╗ -->
-  <!-- ║                      手部槽位大小设置                               ║ -->
-  <!-- ╚════════════════════════════════════════════════════════════════════╝ -->
-  <!--
-    根据玩家权限动态调整手部槽位大小
-    - 玩家加入服务器时自动应用
-    - 玩家死亡复活后重新应用
-
-    权限格式: ModifiedItemDrop.Hands.{permission}
-    例如: permission="vip" 对应权限 ModifiedItemDrop.Hands.vip
-
-    配置说明:
-    ┌─────────────────┬────────────────────────────────────────────┐
-    │ permission      │ 权限名称（不含前缀）                         │
-    ├─────────────────┼────────────────────────────────────────────┤
-    │ width           │ 手部槽位宽度 (1-12)                         │
-    ├─────────────────┼────────────────────────────────────────────┤
-    │ height          │ 手部槽位高度 (1-12)                         │
-    └─────────────────┴────────────────────────────────────────────┘
-
-    优先级: 配置列表从后往前匹配，后面的配置优先级更高
-    例如: 如果玩家同时有 default 和 vip 权限，会使用列表中靠后的配置
-
-    Rocket Permissions.config.xml 配置示例:
-    <Permission Cooldown="0">ModifiedItemDrop.Hands.vip</Permission>
-  -->
+  <!-- Inventory Capability rules: separate from Outcome Rules. -->
   <HandsSlotSettings>
     <Configurations>
-      <!-- 默认配置：所有玩家 -->
       <HandsConfig permission="default" width="5" height="3" />
-
-      <!-- 可自行添加更多权限配置，例如:
+      <!-- Add higher-priority permission rules later in the list, for example:
       <HandsConfig permission="vip" width="8" height="8" />
       <HandsConfig permission="admin" width="12" height="12" />
       -->
     </Configurations>
   </HandsSlotSettings>
 
+  <DeathSettings />
 </ModifiedItemDropConfiguration>

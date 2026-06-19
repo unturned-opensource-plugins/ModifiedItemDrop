@@ -443,10 +443,10 @@ V2 must include an operator-facing migration guide before release. The guide mus
 ## Open questions
 
 - Resolved by ADR 0005: v2 canonical license is MIT.
-- What exact XML shape should Outcome Rules use?
-- What exact XML shape should Inventory Capability rules use?
-- What test framework should be used for .NET Framework/RocketMod-adjacent tests?
-- Should v2 keep the assembly target as `net48` only, or multi-target for testability?
+- Resolved by ADR 0003: Outcome Rules use nested Rule/Target-or-Trigger/Outcome XML.
+- Resolved by ADR 0006: v2 Inventory Capability uses separate HandsSlotSettings/HandsConfig XML.
+- Resolved by ADR 0006 and implementation: xUnit for pure domain and metadata tests.
+- Resolved by ADR 0006: runtime plugin remains net48; testability comes from the separate pure domain project.
 
 
 ## Proposed v2 XML shape

@@ -558,26 +558,10 @@ namespace FFEmqo.ModifiedItemDrop.Drop
                 return;
             }
 
-            // Find matching permission (check in reverse order so later configs have higher priority)
-            HandsConfig matchedConfig = null;
-            for (int i = handsSettings.Configurations.Count - 1; i >= 0; i--)
+            var decision = SelectHandsSlotCapability(player, handsSettings);
+            if (!decision.Applied)
             {
-                var config = handsSettings.Configurations[i];
-                if (config == null || string.IsNullOrEmpty(config.PermissionName))
-                {
-                    continue;
-                }
-
-                var permission = $"ModifiedItemDrop.Hands.{config.PermissionName}";
-                if (player.HasPermission(permission))
-                {
-                    matchedConfig = config;
-                    break;
-                }
-            }
-
-            if (matchedConfig == null)
-            {
+                DebugLog(decision.Diagnostic);
                 return;
             }
 
@@ -587,17 +571,39 @@ namespace FFEmqo.ModifiedItemDrop.Drop
                 var handsPage = player.Player.inventory.items[2];
                 if (handsPage != null)
                 {
-                    var width = ClampHandsSlotDimension(matchedConfig.Width);
-                    var height = ClampHandsSlotDimension(matchedConfig.Height);
-                    handsPage.resize(width, height);
+                    handsPage.resize((byte)decision.Width, (byte)decision.Height);
                     player.Player.inventory.save();
-                    DebugLog($"Applied hands slot size {width}x{height} for player {player.CharacterName} (permission: {matchedConfig.PermissionName})");
+                    DebugLog(decision.Diagnostic + $" Player={player.CharacterName}.");
                 }
             }
             catch (Exception ex)
             {
                 LoggingHelper.LogException(ex, "ApplyHandsSlotSize");
             }
+        }
+
+        public string ExplainHandsSlotCapability(UnturnedPlayer player)
+        {
+            if (player == null)
+            {
+                return "Inventory Capability: no player target provided.";
+            }
+
+            var handsSettings = _configurationLoader.HandsSlotSettings;
+            if (handsSettings?.Configurations == null || handsSettings.Configurations.Count == 0)
+            {
+                return "Inventory Capability: no hands slot rules configured.";
+            }
+
+            return SelectHandsSlotCapability(player, handsSettings).Diagnostic;
+        }
+
+        private static HandsSlotCapabilityDecision SelectHandsSlotCapability(UnturnedPlayer player, HandsSlotSettings handsSettings)
+        {
+            var rules = handsSettings.Configurations
+                .Where(config => config != null && !string.IsNullOrWhiteSpace(config.PermissionName))
+                .Select(config => new HandsSlotCapabilityRule(config.PermissionName, config.Width, config.Height));
+            return InventoryCapabilityPolicy.SelectHandsSlotRule(rules, player.HasPermission);
         }
 
         private static void ForceUnequipCurrentItem(UnturnedPlayer player)
@@ -616,21 +622,6 @@ namespace FFEmqo.ModifiedItemDrop.Drop
             {
                 // Ignore and continue; equipment might already be unequipped.
             }
-        }
-
-        private static byte ClampHandsSlotDimension(byte value)
-        {
-            if (value < 1)
-            {
-                return 1;
-            }
-
-            if (value > 12)
-            {
-                return 12;
-            }
-
-            return value;
         }
 
     }

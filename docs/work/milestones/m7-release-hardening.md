@@ -24,3 +24,17 @@ DOTNET_ROOT=/opt/homebrew/opt/dotnet@8/libexec PATH=/opt/homebrew/opt/dotnet@8/b
 Result: release metadata integrity test passed.
 
 Review note: ADR 0005 records the MIT license decision. Release notes now live in `docs/release/v2.0.0.md`, and the release workflow reads that explicit file rather than generating stale v1 notes inline.
+
+## Slice 2 — Inventory Capability policy and packaged v2 configuration
+
+Behavior: v2 hands slot sizing is represented as an Inventory Capability, not a Player Asset Outcome. The pure domain `InventoryCapabilityPolicy` selects the last matching permission rule, falls back to an explicit `default` rule, clamps invalid dimensions to the supported 1..12 range, and returns a diagnostic explaining the applied rule. Runtime hands slot resizing and diagnostics export now use this policy. The packaged configuration file now uses `OutcomeRulesXml` and no longer ships a v1 `RuleSet` sample or v1 flat command examples.
+
+Red:
+
+```bash
+DOTNET_ROOT=/opt/homebrew/opt/dotnet@8/libexec PATH=/opt/homebrew/opt/dotnet@8/bin:$PATH dotnet test ModifiedItemDrop.Domain.Tests/ModifiedItemDrop.Domain.Tests.csproj -v minimal --filter InventoryCapabilityPolicyTests
+# failed: InventoryCapabilityPolicy and HandsSlotCapabilityRule did not exist
+
+DOTNET_ROOT=/opt/homebrew/opt/dotnet@8/libexec PATH=/opt/homebrew/opt/dotnet@8/bin:$PATH dotnet test ModifiedItemDrop.Domain.Tests/ModifiedItemDrop.Domain.Tests.csproj -v minimal --filter PackagedConfigurationTests
+# failed: packaged configuration still contained <RuleSet>
+```
