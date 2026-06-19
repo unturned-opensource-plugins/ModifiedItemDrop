@@ -6,6 +6,18 @@ namespace FFEmqo.ModifiedItemDrop.Domain
 {
     public sealed class DeathOutcomePlanner
     {
+        private readonly IRollProvider _rollProvider;
+
+        public DeathOutcomePlanner()
+            : this(new RandomRollProvider())
+        {
+        }
+
+        public DeathOutcomePlanner(IRollProvider rollProvider)
+        {
+            _rollProvider = rollProvider ?? throw new ArgumentNullException(nameof(rollProvider));
+        }
+
         public PlayerAssetOutcome Plan(PlayerAsset asset, IEnumerable<OutcomeRule> rules)
         {
             if (asset == null)
@@ -34,12 +46,12 @@ namespace FFEmqo.ModifiedItemDrop.Domain
             return new DeathOutcomePlan(outcomes);
         }
 
-        private static PlayerAssetOutcome PlanAsset(PlayerAsset asset, IEnumerable<OutcomeRule> rules)
+        private PlayerAssetOutcome PlanAsset(PlayerAsset asset, IEnumerable<OutcomeRule> rules)
         {
             var selectedRule = rules
                 .Where(rule => rule.Target.Matches(asset))
                 .OrderByDescending(rule => rule.Priority)
-                .FirstOrDefault();
+                .FirstOrDefault(RuleOutcomeOccurs);
 
             if (selectedRule == null)
             {
@@ -47,6 +59,21 @@ namespace FFEmqo.ModifiedItemDrop.Domain
             }
 
             return new PlayerAssetOutcome(asset, selectedRule.OutcomeKind, selectedRule);
+        }
+
+        private bool RuleOutcomeOccurs(OutcomeRule rule)
+        {
+            if (rule.Chance <= 0)
+            {
+                return false;
+            }
+
+            if (rule.Chance >= 1)
+            {
+                return true;
+            }
+
+            return _rollProvider.NextRoll() < rule.Chance;
         }
     }
 }
