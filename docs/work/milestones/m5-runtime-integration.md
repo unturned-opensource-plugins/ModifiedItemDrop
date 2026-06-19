@@ -180,3 +180,20 @@ DOTNET_ROOT=/opt/homebrew/opt/dotnet@8/libexec PATH=/opt/homebrew/opt/dotnet@8/b
 Result: plugin build succeeded with `0 Warning(s), 0 Error(s)`; domain tests `Passed: 35, Failed: 0`.
 
 Review note: this closes a Player Asset Conservation gap before deeper runtime wiring: the canonical domain object now carries the minimum item data required for Durable Claim recovery.
+
+## Slice 12 — Canonical slots cover runtime clothing assets
+
+Behavior: v2 Outcome Rules must be able to target runtime clothing slots such as `Shirt`, not only primary/secondary/hands/backpack. Runtime death integration cannot safely project clothing snapshots into canonical Player Assets while the domain slot vocabulary is narrower than Unturned clothing slots.
+
+Red: `dotnet test` failed because `PlayerAssetSlot` did not contain `Shirt`.
+
+Green command:
+
+```bash
+DOTNET_ROOT=/opt/homebrew/opt/dotnet@8/libexec PATH=/opt/homebrew/opt/dotnet@8/bin:$PATH dotnet test ModifiedItemDrop.Domain.Tests/ModifiedItemDrop.Domain.Tests.csproj -v minimal
+DOTNET_ROOT=/opt/homebrew/opt/dotnet@8/libexec PATH=/opt/homebrew/opt/dotnet@8/bin:$PATH dotnet build ModifiedItemDrop.csproj -v minimal
+```
+
+Result: plugin build succeeded with `0 Warning(s), 0 Error(s)`; domain tests `Passed: 36, Failed: 0`.
+
+Review note: `PlayerAssetSlot` now includes `Backpack`, `Vest`, `Shirt`, `Pants`, `Hat`, `Mask`, and `Glasses`, so XML slot targets can cover all clothing assets before runtime adapter wiring.

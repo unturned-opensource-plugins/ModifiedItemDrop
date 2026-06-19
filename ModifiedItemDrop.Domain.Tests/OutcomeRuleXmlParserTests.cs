@@ -84,6 +84,31 @@ public sealed class OutcomeRuleXmlParserTests
 
 
     [Fact]
+    public void NestedXmlSlotTargetCanPlanShirtOutcome()
+    {
+        var xml = """
+            <OutcomeRules>
+              <Rule name="Keep shirt" priority="100">
+                <Target kind="Slot" slot="Shirt" />
+                <Outcome kind="Keep" />
+              </Rule>
+              <Rule name="Default drop" priority="0">
+                <Target kind="Any" />
+                <Outcome kind="Drop" chance="1.0" />
+              </Rule>
+            </OutcomeRules>
+            """;
+        var asset = new PlayerAsset("shirt", PlayerAssetSlot.Shirt, itemId: 1010);
+
+        var rules = OutcomeRuleXmlParser.Parse(xml);
+        var outcome = new DeathOutcomePlanner().Plan(asset, rules);
+
+        Assert.Equal(PlayerAssetOutcomeKind.Keep, outcome.Kind);
+        Assert.Equal("Keep shirt", outcome.Rule.Name);
+    }
+
+
+    [Fact]
     public void V1ConfigurationShapeIsRejectedWithMigrationGuidance()
     {
         var xml = """
