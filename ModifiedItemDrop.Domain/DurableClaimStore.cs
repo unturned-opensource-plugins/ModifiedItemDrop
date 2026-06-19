@@ -73,18 +73,21 @@ namespace FFEmqo.ModifiedItemDrop.Domain
             catch (JsonException)
             {
                 var corruptPath = PreserveCorruptPrimary();
+                var warning = "Durable Claim primary storage is corrupt: " + _paths.PrimaryPath + "; preserved copy: " + corruptPath + ".";
                 if (File.Exists(_paths.BackupPath))
                 {
                     return new DurableClaimLoadResult(
                         ReadClaims(_paths.BackupPath),
                         recoveredFromBackup: true,
-                        preservedCorruptPath: corruptPath);
+                        preservedCorruptPath: corruptPath,
+                        warnings: new[] { warning + " Recovered from backup: " + _paths.BackupPath + "." });
                 }
 
                 return new DurableClaimLoadResult(
                     Array.Empty<DurableClaimRecord>(),
                     recoveredFromBackup: false,
-                    preservedCorruptPath: corruptPath);
+                    preservedCorruptPath: corruptPath,
+                    warnings: new[] { warning + " No backup was available." });
             }
         }
 
@@ -118,8 +121,8 @@ namespace FFEmqo.ModifiedItemDrop.Domain
 
             if (File.Exists(_paths.PrimaryPath))
             {
-                File.Copy(_paths.PrimaryPath, _paths.BackupPath, overwrite: true);
-                File.Delete(_paths.PrimaryPath);
+                File.Replace(tempPath, _paths.PrimaryPath, _paths.BackupPath, ignoreMetadataErrors: true);
+                return;
             }
 
             File.Move(tempPath, _paths.PrimaryPath);

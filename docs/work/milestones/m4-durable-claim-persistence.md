@@ -96,3 +96,17 @@ DOTNET_ROOT=/opt/homebrew/opt/dotnet@8/libexec PATH=/opt/homebrew/opt/dotnet@8/b
 ```
 
 Result: `Passed: 24, Failed: 0`.
+
+## Slice 7 — Corrupt storage warning and atomic replacement
+
+Behavior: corrupt primary recovery returns an operator-facing warning containing the corrupt primary path and preserved corrupt copy path. Existing primary writes use `File.Replace` with backup path for atomic replacement where available.
+
+Red: `dotnet test` failed because `DurableClaimLoadResult.Warnings` did not exist.
+
+Green command:
+
+```bash
+DOTNET_ROOT=/opt/homebrew/opt/dotnet@8/libexec PATH=/opt/homebrew/opt/dotnet@8/bin:$PATH dotnet test ModifiedItemDrop.Domain.Tests/ModifiedItemDrop.Domain.Tests.csproj -v minimal
+```
+
+Green result: `Passed: 24, Failed: 0`.

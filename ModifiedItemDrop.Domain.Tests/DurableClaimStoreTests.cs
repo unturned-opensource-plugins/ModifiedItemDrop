@@ -80,6 +80,7 @@ public sealed class DurableClaimStoreTests
             var loaded = store.Load();
 
             Assert.True(loaded.RecoveredFromBackup);
+            Assert.Contains(loaded.Warnings, warning => warning.Contains("corrupt") && warning.Contains(paths.PrimaryPath));
             var claim = Assert.Single(loaded.Claims);
             Assert.Equal("claim-1", claim.Id);
             var corruptFile = Assert.Single(Directory.GetFiles(paths.CorruptDirectory, "claims.*.json"));
