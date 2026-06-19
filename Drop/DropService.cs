@@ -26,9 +26,11 @@ namespace FFEmqo.ModifiedItemDrop.Drop
         private readonly V2DeathProcessingAdapter _v2DeathProcessingAdapter = new V2DeathProcessingAdapter();
         private readonly V2QuickSlotExecutionAdapter _v2QuickSlotExecutionAdapter = new V2QuickSlotExecutionAdapter();
         private readonly V2ClothingExecutionAdapter _v2ClothingExecutionAdapter = new V2ClothingExecutionAdapter();
+        private readonly DeathSessionRespawnGrantPlanner _v2RespawnGrantPlanner = new DeathSessionRespawnGrantPlanner();
         [ThreadStatic] private static System.Random _random;
         private static System.Random GetRandom() => _random ?? (_random = new System.Random(Environment.TickCount ^ System.Threading.Thread.CurrentThread.ManagedThreadId));
         private readonly Dictionary<CSteamID, PendingRestore> _pendingRestores = new Dictionary<CSteamID, PendingRestore>();
+        private readonly Dictionary<CSteamID, DeathSession> _deathSessions = new Dictionary<CSteamID, DeathSession>();
         private readonly object _pendingRestoresLock = new object();
 
         private volatile InventoryProcessor _inventoryProcessor;
@@ -197,6 +199,17 @@ namespace FFEmqo.ModifiedItemDrop.Drop
                         deathResult.ExecutionPlan,
                         pending,
                         deathPosition);
+                    lock (_pendingRestoresLock)
+                    {
+                        if (deathResult.HasPendingDeathSession || HasV2RespawnGrantRules())
+                        {
+                            _deathSessions[player.CSteamID] = deathResult.DeathSession;
+                        }
+                        else
+                        {
+                            _deathSessions.Remove(player.CSteamID);
+                        }
+                    }
                 }
 
                 invProc.ProcessInventory(player, pending, deathPosition);
@@ -230,23 +243,73 @@ namespace FFEmqo.ModifiedItemDrop.Drop
             }
 
             PendingRestore pending = null;
+            DeathSession deathSession = null;
             lock (_pendingRestoresLock)
             {
                 _pendingRestores.TryGetValue(player.CSteamID, out pending);
+                _deathSessions.TryGetValue(player.CSteamID, out deathSession);
             }
 
             if (pending != null)
             {
                 _restoreManager.RestorePendingItems(player, pending);
+                GiveV2RespawnGrants(player, deathSession);
                 lock (_pendingRestoresLock)
                 {
                     _pendingRestores.Remove(player.CSteamID);
+                    _deathSessions.Remove(player.CSteamID);
                 }
             }
             else
             {
-                _restoreManager.GiveRespawnItems(player);
+                GiveV2RespawnGrants(player, deathSession);
+                lock (_pendingRestoresLock)
+                {
+                    _deathSessions.Remove(player.CSteamID);
+                }
             }
+        }
+
+        private void GiveV2RespawnGrants(UnturnedPlayer player, DeathSession deathSession)
+        {
+            if (player?.Player?.inventory == null || deathSession == null)
+            {
+                return;
+            }
+
+            var result = _v2RespawnGrantPlanner.PlanAfterDeathRespawn(deathSession, _configurationLoader.CurrentOutcomeRules);
+            if (result.Grants.Count == 0)
+            {
+                return;
+            }
+
+            var failed = new PendingRestore(player.Position);
+            foreach (var grant in result.Grants)
+            {
+                if (grant.ItemId == 0 || grant.Amount == 0)
+                {
+                    continue;
+                }
+
+                var item = new Item(grant.ItemId, grant.Amount, grant.Quality, Array.Empty<byte>());
+                if (!player.Player.inventory.tryAddItem(item, true))
+                {
+                    failed.InventoryItems.Add(new PendingInventoryItem(item, byte.MaxValue));
+                }
+            }
+
+            if (!failed.IsEmpty)
+            {
+                var saved = _restoreManager.SavePendingToClaimOrDrop((ulong)player.CSteamID, failed);
+                UtilityHelper.TryNotify(player, saved
+                    ? $"有 {failed.InventoryItems.Count} 个复活 Grant 空间不足，已存入待领取。"
+                    : $"{failed.InventoryItems.Count} 个复活 Grant 空间不足且 Claim 不可用，已掉落在当前位置。");
+            }
+        }
+
+        private bool HasV2RespawnGrantRules()
+        {
+            return _configurationLoader.CurrentOutcomeRules.Any(rule => rule.TriggerKind == OutcomeRuleTriggerKind.AfterDeathRespawn);
         }
 
         public void HandlePlayerDisconnected(UnturnedPlayer player)
@@ -264,6 +327,7 @@ namespace FFEmqo.ModifiedItemDrop.Drop
                     return;
                 }
                 _pendingRestores.Remove(player.CSteamID);
+                _deathSessions.Remove(player.CSteamID);
             }
 
             if (!pending.IsEmpty)
@@ -310,6 +374,7 @@ namespace FFEmqo.ModifiedItemDrop.Drop
                 }
                 snapshot = new List<KeyValuePair<CSteamID, PendingRestore>>(_pendingRestores);
                 _pendingRestores.Clear();
+                _deathSessions.Clear();
             }
 
             foreach (var kvp in snapshot)

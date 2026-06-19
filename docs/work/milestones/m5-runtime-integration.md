@@ -362,3 +362,18 @@ DOTNET_ROOT=/opt/homebrew/opt/dotnet@8/libexec PATH=/opt/homebrew/opt/dotnet@8/b
 Result: plugin build succeeded with `0 Warning(s), 0 Error(s)`; domain tests `Passed: 45, Failed: 0`.
 
 Review note: `Drop/V2ClothingExecutionAdapter.cs` processes contents before clearing the clothing slot, so content assets are explicitly routed by v2 execution actions instead of being implicitly lost or forced to follow the parent clothing outcome.
+
+## Slice 22 — Respawn Grants execute from v2 Outcome Rules
+
+Behavior: runtime respawn grants now come from v2 `OutcomeRule` entries with `Trigger kind="AfterDeathRespawn"` instead of legacy `DeathSettings.RespawnItems`. `DropService` tracks a death session from death to revive, executes grants only for that tracked session, and uses the domain `DeathSessionRespawnGrantPlanner` to prevent duplicate grants. Failed grant placement is converted to pending restore and routed through v2 Durable Claim or Drop fallback.
+
+Verification command:
+
+```bash
+DOTNET_ROOT=/opt/homebrew/opt/dotnet@8/libexec PATH=/opt/homebrew/opt/dotnet@8/bin:$PATH dotnet test ModifiedItemDrop.Domain.Tests/ModifiedItemDrop.Domain.Tests.csproj -v minimal
+DOTNET_ROOT=/opt/homebrew/opt/dotnet@8/libexec PATH=/opt/homebrew/opt/dotnet@8/bin:$PATH dotnet build ModifiedItemDrop.csproj -v minimal
+```
+
+Result: plugin build succeeded with `0 Warning(s), 0 Error(s)`; domain tests `Passed: 45, Failed: 0`.
+
+Review note: `DropService.HandlePlayerRevived` now executes v2 grants after pending restore or, when there are no kept assets, after a lightweight tracked death session created for Grant-trigger rules. Legacy `RestoreManager.GiveRespawnItems` remains in code but is no longer called by the revive path.
