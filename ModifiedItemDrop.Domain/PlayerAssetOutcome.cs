@@ -16,5 +16,15 @@ namespace FFEmqo.ModifiedItemDrop.Domain
         public PlayerAssetOutcomeKind Kind { get; }
 
         public OutcomeRule Rule { get; }
+
+        public bool RequiresRestoration
+        {
+            get { return Kind == PlayerAssetOutcomeKind.Keep; }
+        }
+
+        public bool IsDurableClaimEligible
+        {
+            get { return Kind == PlayerAssetOutcomeKind.Keep; }
+        }
     }
 }
