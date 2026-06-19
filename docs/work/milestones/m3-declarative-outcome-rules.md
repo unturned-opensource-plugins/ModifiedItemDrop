@@ -155,3 +155,17 @@ DOTNET_ROOT=/opt/homebrew/opt/dotnet@8/libexec PATH=/opt/homebrew/opt/dotnet@8/b
 Green result: `Passed: 11, Failed: 0`.
 
 Review note: deterministic roll inspection stays in the pure domain output; command formatting remains a later adapter concern.
+
+## Slice 10 — Probability boundary: chance zero
+
+Behavior: `chance <= 0` never applies and the planner continues to the explicit fallback rule. No sampled roll is recorded for a never-occurring boundary rule.
+
+Result: this test passed immediately because Slice 1's probability implementation already used the PRD boundary semantics. It is retained as explicit regression coverage for the v2 `chance=0` behavior, which intentionally differs from v1 `roll <= chance` edge behavior.
+
+Verification command:
+
+```bash
+DOTNET_ROOT=/opt/homebrew/opt/dotnet@8/libexec PATH=/opt/homebrew/opt/dotnet@8/bin:$PATH dotnet test ModifiedItemDrop.Domain.Tests/ModifiedItemDrop.Domain.Tests.csproj -v minimal
+```
+
+Result: `Passed: 12, Failed: 0`.

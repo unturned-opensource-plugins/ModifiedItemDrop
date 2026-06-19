@@ -125,6 +125,24 @@ public sealed class DeathOutcomePlannerTests
         Assert.Equal(0.50, outcome.Rule.Chance);
     }
 
+
+    [Fact]
+    public void ChanceZeroNeverUsesProbabilisticRuleAndFallsBack()
+    {
+        var asset = new PlayerAsset("asset-1", PlayerAssetSlot.PrimaryWeapon, itemId: 363);
+        var rules = new[]
+        {
+            OutcomeRule.Drop("primary weapon never drops", 100, OutcomeTarget.ForSlot(PlayerAssetSlot.PrimaryWeapon), chance: 0.0),
+            OutcomeRule.Keep("fallback keep", 0, OutcomeTarget.Any(), chance: 1.0)
+        };
+
+        var outcome = new DeathOutcomePlanner(new FixedRollProvider(0.0)).Plan(asset, rules);
+
+        Assert.Equal(PlayerAssetOutcomeKind.Keep, outcome.Kind);
+        Assert.Equal("fallback keep", outcome.Rule.Name);
+        Assert.Null(outcome.SampledRoll);
+    }
+
 }
 
 
