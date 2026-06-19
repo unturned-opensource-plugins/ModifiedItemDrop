@@ -30,6 +30,21 @@ namespace FFEmqo.ModifiedItemDrop.Claim
 
         public string DisabledReason => _disabledReason;
 
+        public IReadOnlyList<DurableClaimRecord> ListClaims(ulong steamId)
+        {
+            if (!_recoveryEnabled)
+            {
+                return Array.Empty<DurableClaimRecord>();
+            }
+
+            var loadResult = _store.Load();
+            LogLoadWarnings(loadResult);
+            return loadResult.Claims
+                .Where(record => record.SteamId == steamId)
+                .ToList()
+                .AsReadOnly();
+        }
+
         public bool ClaimOldest(UnturnedPlayer player, out int itemsRestored, out bool hasMore)
         {
             itemsRestored = 0;

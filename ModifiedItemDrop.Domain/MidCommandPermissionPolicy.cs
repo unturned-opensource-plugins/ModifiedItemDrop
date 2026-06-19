@@ -8,6 +8,7 @@ namespace FFEmqo.ModifiedItemDrop.Domain
         public const string RulesPreview = "modifieditemdrop.rules.preview";
         public const string RulesExplain = "modifieditemdrop.rules.explain";
         public const string InventoryDump = "modifieditemdrop.inventory.dump";
+        public const string ClaimsList = "modifieditemdrop.claims.list";
         public const string ClaimsRecover = "modifieditemdrop.claims.recover";
         public const string DiagnosticsStatus = "modifieditemdrop.diagnostics.status";
         public const string DiagnosticsExport = "modifieditemdrop.diagnostics.export";
@@ -24,6 +25,8 @@ namespace FFEmqo.ModifiedItemDrop.Domain
                     return RulesExplain;
                 case MidCommandRouteKind.InventoryDump:
                     return InventoryDump;
+                case MidCommandRouteKind.ClaimsList:
+                    return ClaimsList;
                 case MidCommandRouteKind.ClaimsRecover:
                     return ClaimsRecover;
                 case MidCommandRouteKind.DiagnosticsStatus:

@@ -28,6 +28,7 @@ namespace FFEmqo.ModifiedItemDrop.Plugin
             MidCommandPermissionPolicy.RulesPreview,
             MidCommandPermissionPolicy.RulesExplain,
             MidCommandPermissionPolicy.InventoryDump,
+            MidCommandPermissionPolicy.ClaimsList,
             MidCommandPermissionPolicy.ClaimsRecover,
             MidCommandPermissionPolicy.DiagnosticsStatus,
             MidCommandPermissionPolicy.DiagnosticsExport
@@ -61,6 +62,9 @@ namespace FFEmqo.ModifiedItemDrop.Plugin
                     break;
                 case MidCommandRouteKind.InventoryDump:
                     HandleDump(caller, route.Arguments.ToArray());
+                    break;
+                case MidCommandRouteKind.ClaimsList:
+                    HandleClaimsList(caller, route.Arguments.ToArray());
                     break;
                 case MidCommandRouteKind.ClaimsRecover:
                     HandleClaim(caller, route.Arguments.ToArray());
@@ -187,6 +191,49 @@ namespace FFEmqo.ModifiedItemDrop.Plugin
             foreach (var line in InventoryInspector.BuildDumpLines(target))
             {
                 SendMessage(caller, line, Color.cyan);
+            }
+        }
+
+        private static void HandleClaimsList(IRocketPlayer caller, string[] args)
+        {
+            if (!HasPermission(caller, MidCommandPermissionPolicy.ClaimsList))
+            {
+                SendMessage(caller, "You do not have permission to list pending Claims.", Color.red);
+                return;
+            }
+
+            var plugin = ModifiedItemDropPlugin.Instance;
+            var recovery = plugin?.V2ClaimRecoveryService;
+            if (plugin == null || recovery == null)
+            {
+                SendMessage(caller, "ModifiedItemDrop is not ready.", Color.red);
+                return;
+            }
+
+            if (!recovery.RecoveryEnabled)
+            {
+                SendMessage(caller, "Claim Recovery is disabled by Claim storage degraded mode: " + recovery.DisabledReason, Color.red);
+                return;
+            }
+
+            var target = ResolveTarget(caller, args, "claims list");
+            if (target == null)
+            {
+                return;
+            }
+
+            var claims = recovery.ListClaims((ulong)target.CSteamID);
+            if (claims.Count == 0)
+            {
+                SendMessage(caller, $"No v2 Durable Claims found for {target.CharacterName}.", Color.cyan);
+                return;
+            }
+
+            var assetCount = claims.Sum(claim => claim.Assets.Count);
+            SendMessage(caller, $"{target.CharacterName} has {claims.Count} v2 Durable Claim(s), {assetCount} Player Asset(s).", Color.cyan);
+            foreach (var claim in claims.Take(5))
+            {
+                SendMessage(caller, $" - claim={claim.Id} assets={claim.Assets.Count}", Color.cyan);
             }
         }
 

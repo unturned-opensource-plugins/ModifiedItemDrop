@@ -8,8 +8,9 @@ namespace FFEmqo.ModifiedItemDrop.Domain
         RulesPreview = 3,
         RulesExplain = 4,
         InventoryDump = 5,
-        ClaimsRecover = 6,
-        DiagnosticsStatus = 7,
-        DiagnosticsExport = 8
+        ClaimsList = 6,
+        ClaimsRecover = 7,
+        DiagnosticsStatus = 8,
+        DiagnosticsExport = 9
     }
 }

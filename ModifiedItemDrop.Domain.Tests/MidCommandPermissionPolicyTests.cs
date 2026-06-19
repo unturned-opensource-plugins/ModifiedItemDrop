@@ -10,6 +10,7 @@ public sealed class MidCommandPermissionPolicyTests
     [InlineData(MidCommandRouteKind.RulesPreview, "modifieditemdrop.rules.preview")]
     [InlineData(MidCommandRouteKind.RulesExplain, "modifieditemdrop.rules.explain")]
     [InlineData(MidCommandRouteKind.InventoryDump, "modifieditemdrop.inventory.dump")]
+    [InlineData(MidCommandRouteKind.ClaimsList, "modifieditemdrop.claims.list")]
     [InlineData(MidCommandRouteKind.ClaimsRecover, "modifieditemdrop.claims.recover")]
     [InlineData(MidCommandRouteKind.DiagnosticsStatus, "modifieditemdrop.diagnostics.status")]
     [InlineData(MidCommandRouteKind.DiagnosticsExport, "modifieditemdrop.diagnostics.export")]

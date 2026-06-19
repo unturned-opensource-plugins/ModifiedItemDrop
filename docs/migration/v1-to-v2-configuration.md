@@ -181,7 +181,7 @@ V2 uses `/mid` as the single command root. V1 flat aliases must not be reintrodu
 | `/mid reload` | `/mid config reload` | Requires `modifieditemdrop.config.reload`. |
 | `/mid preview [player]` | `/mid rules preview [player]` | Preview now reports v2 Outcome Rule decisions, not legacy chance sources. |
 | `/mid dump [player]` | `/mid inventory dump [player]` | Inventory diagnostics moved under the inventory group. |
-| `/mid claim` | `/mid claims recover oldest` | v2 Durable Claim recovery is explicit. Use `/mid claims recover all` to recover all pending v2 Claims. |
+| `/mid claim` | `/mid claims recover oldest` | v2 Durable Claim recovery is explicit. Use `/mid claims list [player]` to inspect pending v2 Claims and `/mid claims recover all` to recover all pending v2 Claims. |
 | `/mid status` | `/mid diagnostics status` | Safe/degraded mode status moved under diagnostics. |
 | n/a | `/mid rules explain slot <PlayerAssetSlot>` | Explains the matched rule, configured chance, sampled roll when available, and final Outcome for a synthetic slot target. |
 | n/a | `/mid rules explain item <itemId>` | Explains the matched rule for a synthetic ItemID target. Item-specific rules take priority according to configured `priority`. |

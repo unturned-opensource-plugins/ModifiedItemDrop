@@ -106,3 +106,23 @@ DOTNET_ROOT=/opt/homebrew/opt/dotnet@8/libexec PATH=/opt/homebrew/opt/dotnet@8/b
 ```
 
 Result: domain tests `Passed: 67, Failed: 0`; plugin build succeeded with `0 Warning(s), 0 Error(s)`.
+
+## Slice 5 — Claims list command completes the proposed claims group
+
+Behavior: `/mid claims list [player]` routes independently from Claim Recovery and uses the grouped `modifieditemdrop.claims.list` permission. The runtime command reads v2 Durable Claim records non-destructively and reports a short Claim/Player Asset summary for the target player.
+
+Red:
+
+```bash
+DOTNET_ROOT=/opt/homebrew/opt/dotnet@8/libexec PATH=/opt/homebrew/opt/dotnet@8/bin:$PATH dotnet test ModifiedItemDrop.Domain.Tests/ModifiedItemDrop.Domain.Tests.csproj -v minimal --filter "MidCommandRouterTests|MidCommandPermissionPolicyTests"
+# failed: MidCommandRouteKind.ClaimsList did not exist
+```
+
+Green command:
+
+```bash
+DOTNET_ROOT=/opt/homebrew/opt/dotnet@8/libexec PATH=/opt/homebrew/opt/dotnet@8/bin:$PATH dotnet test ModifiedItemDrop.Domain.Tests/ModifiedItemDrop.Domain.Tests.csproj -v minimal
+DOTNET_ROOT=/opt/homebrew/opt/dotnet@8/libexec PATH=/opt/homebrew/opt/dotnet@8/bin:$PATH dotnet build ModifiedItemDrop.csproj -v minimal
+```
+
+Result: domain tests `Passed: 69, Failed: 0`; plugin build succeeded with `0 Warning(s), 0 Error(s)`.

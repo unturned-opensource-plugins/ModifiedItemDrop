@@ -120,6 +120,7 @@ v2 配置必须包含显式 catch-all 规则，例如 `Target kind="Any"`。
 | `/mid rules explain slot <PlayerAssetSlot>` | `modifieditemdrop.rules.explain` | 解释某个槽位目标会命中的规则、概率和最终 Outcome |
 | `/mid rules explain item <itemId>` | `modifieditemdrop.rules.explain` | 解释某个 ItemID 目标会命中的规则、概率和最终 Outcome |
 | `/mid inventory dump [player]` | `modifieditemdrop.inventory.dump` | 导出玩家完整库存信息 |
+| `/mid claims list [player]` | `modifieditemdrop.claims.list` | 查看玩家待恢复的 v2 Durable Claims 摘要 |
 | `/mid claims recover oldest` | `modifieditemdrop.claims.recover` | 领取最旧一条 v2 Durable Claim |
 | `/mid claims recover all` | `modifieditemdrop.claims.recover` | 领取全部 v2 Durable Claims |
 | `/mid diagnostics status` | `modifieditemdrop.diagnostics.status` | 查看 safe/degraded mode 与 Claim Recovery 状态 |
