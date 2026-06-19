@@ -42,8 +42,19 @@ namespace FFEmqo.ModifiedItemDrop.Domain
             }
 
             var ruleList = rules.ToList();
+            EnsureCatchAllRuleExists(ruleList);
+
             var outcomes = assets.Select(asset => PlanAsset(asset, ruleList));
             return new DeathOutcomePlan(outcomes);
+        }
+
+        private static void EnsureCatchAllRuleExists(IEnumerable<OutcomeRule> rules)
+        {
+            if (!rules.Any(rule => rule.Target.IsCatchAll))
+            {
+                throw new InvalidOutcomeRuleConfigurationException(
+                    "Outcome Rule configuration must include an explicit catch-all rule, such as Target kind Any.");
+            }
         }
 
         private PlayerAssetOutcome PlanAsset(PlayerAsset asset, IEnumerable<OutcomeRule> rules)

@@ -13,6 +13,11 @@ namespace FFEmqo.ModifiedItemDrop.Domain
             _itemId = itemId;
         }
 
+        public bool IsCatchAll
+        {
+            get { return _kind == OutcomeTargetKind.Any; }
+        }
+
         public static OutcomeTarget Any()
         {
             return new OutcomeTarget(OutcomeTargetKind.Any, null, null);

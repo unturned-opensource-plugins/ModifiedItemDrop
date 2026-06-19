@@ -14,8 +14,13 @@ public sealed class DeathOutcomePlannerTests
             priority: 100,
             OutcomeTarget.ForSlot(PlayerAssetSlot.PrimaryWeapon),
             chance: 1.0);
+        var fallback = OutcomeRule.Keep(
+            "fallback keep",
+            priority: 0,
+            OutcomeTarget.Any(),
+            chance: 1.0);
 
-        var outcome = new DeathOutcomePlanner().Plan(asset, new[] { rule });
+        var outcome = new DeathOutcomePlanner().Plan(asset, new[] { rule, fallback });
 
         Assert.Equal(PlayerAssetOutcomeKind.Drop, outcome.Kind);
         Assert.Same(asset, outcome.Asset);
@@ -64,6 +69,26 @@ public sealed class DeathOutcomePlannerTests
         Assert.Contains("priority 100", exception.Message);
         Assert.Contains("drop primary", exception.Message);
         Assert.Contains("keep primary", exception.Message);
+    }
+
+
+    [Fact]
+    public void MissingCatchAllRuleIsInvalidConfiguration()
+    {
+        var asset = new PlayerAsset("backpack", PlayerAssetSlot.Backpack, itemId: 253);
+        var rules = new[]
+        {
+            OutcomeRule.Drop(
+                "primary weapon drops",
+                priority: 100,
+                OutcomeTarget.ForSlot(PlayerAssetSlot.PrimaryWeapon),
+                chance: 1.0)
+        };
+
+        var exception = Assert.Throws<InvalidOutcomeRuleConfigurationException>(
+            () => new DeathOutcomePlanner().Plan(asset, rules));
+
+        Assert.Contains("catch-all", exception.Message);
     }
 
 }

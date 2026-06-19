@@ -43,3 +43,19 @@ DOTNET_ROOT=/opt/homebrew/opt/dotnet@8/libexec PATH=/opt/homebrew/opt/dotnet@8/b
 Green result: `Passed: 4, Failed: 0`.
 
 Review note: conflict detection happens before probabilistic sampling for a priority group, so ambiguous configuration cannot be hidden behind chance behavior.
+
+## Slice 3 — Missing catch-all is invalid configuration
+
+Behavior: v2 Outcome Rule configuration must include an explicit catch-all rule (`OutcomeTarget.Any()` / XML `Target kind="Any"`). Missing catch-all is an invalid configuration, not a runtime no-match default.
+
+Red: `dotnet test` failed because the planner raised `InvalidOperationException` instead of `InvalidOutcomeRuleConfigurationException` for a ruleset without catch-all.
+
+Green command:
+
+```bash
+DOTNET_ROOT=/opt/homebrew/opt/dotnet@8/libexec PATH=/opt/homebrew/opt/dotnet@8/bin:$PATH dotnet test ModifiedItemDrop.Domain.Tests/ModifiedItemDrop.Domain.Tests.csproj -v minimal
+```
+
+Green result: `Passed: 5, Failed: 0`.
+
+Review note: existing tests now include explicit fallback rules where they represent valid v2 rule configuration. This removes the early tracer's temporary one-rule shortcut from final M3 semantics while preserving the original M1 milestone evidence.
