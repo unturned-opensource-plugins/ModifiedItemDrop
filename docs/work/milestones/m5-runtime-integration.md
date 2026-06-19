@@ -197,3 +197,20 @@ DOTNET_ROOT=/opt/homebrew/opt/dotnet@8/libexec PATH=/opt/homebrew/opt/dotnet@8/b
 Result: plugin build succeeded with `0 Warning(s), 0 Error(s)`; domain tests `Passed: 36, Failed: 0`.
 
 Review note: `PlayerAssetSlot` now includes `Backpack`, `Vest`, `Shirt`, `Pants`, `Hat`, `Mask`, and `Glasses`, so XML slot targets can cover all clothing assets before runtime adapter wiring.
+
+## Slice 13 — Runtime snapshots project into canonical Player Assets
+
+Behavior: runtime inventory and clothing snapshots have a single adapter path into canonical `PlayerAsset` values before v2 death planning. The projection preserves source identity, slot, item id, amount, quality, state, and clothing-content parentage without adding Rocket/Unturned references to the Domain project.
+
+Red: `dotnet test` failed because `PlayerAssetProjection` did not exist.
+
+Green command:
+
+```bash
+DOTNET_ROOT=/opt/homebrew/opt/dotnet@8/libexec PATH=/opt/homebrew/opt/dotnet@8/bin:$PATH dotnet test ModifiedItemDrop.Domain.Tests/ModifiedItemDrop.Domain.Tests.csproj -v minimal
+DOTNET_ROOT=/opt/homebrew/opt/dotnet@8/libexec PATH=/opt/homebrew/opt/dotnet@8/bin:$PATH dotnet build ModifiedItemDrop.csproj -v minimal
+```
+
+Result: plugin build succeeded with `0 Warning(s), 0 Error(s)`; domain tests `Passed: 38, Failed: 0`.
+
+Review note: `ModifiedItemDrop.Domain/PlayerAssetProjection.cs` owns the pure canonical projection contract. `Drop/V2PlayerAssetRuntimeAdapter.cs` is the Rocket/Unturned boundary adapter and keeps runtime types outside the Domain project.
