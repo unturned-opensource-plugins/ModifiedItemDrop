@@ -4,6 +4,7 @@ using System.Linq;
 using FFEmqo.ModifiedItemDrop.Claim;
 using FFEmqo.ModifiedItemDrop.Configuration;
 using FFEmqo.ModifiedItemDrop.Domain;
+using FFEmqo.ModifiedItemDrop.Extensions;
 using FFEmqo.ModifiedItemDrop.Models;
 using FFEmqo.ModifiedItemDrop.Utilities;
 using Rocket.Unturned.Player;
@@ -17,28 +18,18 @@ namespace FFEmqo.ModifiedItemDrop.Drop
     /// </summary>
     public sealed class RestoreManager
     {
-        private readonly InventoryProcessor _inventoryProcessor;
-        private readonly ClothingProcessor _clothingProcessor;
+        private const byte AnyInventoryPage = byte.MaxValue;
         private readonly ClaimService _claimService;
         private readonly IDurableClaimCreator _v2ClaimCreator;
         private readonly V2ClaimRecoveryService _v2ClaimRecoveryService;
         private readonly ConfigurationLoader _configurationLoader;
 
-        public RestoreManager(InventoryProcessor inventoryProcessor, ClothingProcessor clothingProcessor, ClaimService claimService, ConfigurationLoader configurationLoader)
-            : this(inventoryProcessor, clothingProcessor, claimService, null, null, configurationLoader)
-        {
-        }
-
         public RestoreManager(
-            InventoryProcessor inventoryProcessor,
-            ClothingProcessor clothingProcessor,
             ClaimService claimService,
             IDurableClaimCreator v2ClaimCreator,
             V2ClaimRecoveryService v2ClaimRecoveryService,
             ConfigurationLoader configurationLoader)
         {
-            _inventoryProcessor = inventoryProcessor ?? throw new ArgumentNullException(nameof(inventoryProcessor));
-            _clothingProcessor = clothingProcessor ?? throw new ArgumentNullException(nameof(clothingProcessor));
             _claimService = claimService;
             _v2ClaimCreator = v2ClaimCreator;
             _v2ClaimRecoveryService = v2ClaimRecoveryService;
@@ -56,8 +47,8 @@ namespace FFEmqo.ModifiedItemDrop.Drop
                 return;
             }
 
-            _inventoryProcessor.RestoreInventory(player, pending);
-            _clothingProcessor.RestoreClothing(player, pending);
+            RestoreInventory(player, pending);
+            RestoreClothing(player, pending);
 
             if (pending.IsEmpty)
             {
@@ -67,7 +58,7 @@ namespace FFEmqo.ModifiedItemDrop.Drop
             var saved = SavePendingToClaimOrDrop((ulong)player.CSteamID, pending);
             if (saved)
             {
-                UtilityHelper.TryNotify(player, $"有 {pending.InventoryItems.Count + pending.ClothingItems.Count} 个物品已保存，使用 /mid claim 领取。");
+                UtilityHelper.TryNotify(player, $"有 {pending.InventoryItems.Count + pending.ClothingItems.Count} 个物品已保存，使用 /mid claims recover oldest 领取。");
             }
             else
             {
@@ -203,8 +194,8 @@ namespace FFEmqo.ModifiedItemDrop.Drop
             LoggingHelper.SafeExecute(
                 () =>
                 {
-                    _inventoryProcessor.RestoreInventory(player, pending);
-                    _clothingProcessor.RestoreClothing(player, pending);
+                    RestoreInventory(player, pending);
+                    RestoreClothing(player, pending);
                 },
                 "RestoreImmediately"
             );
@@ -233,7 +224,7 @@ namespace FFEmqo.ModifiedItemDrop.Drop
                 var msg = $"已领取 {v2ItemsRestored} 个物品和 0 件衣物。";
                 if (v2HasMore || HasV1Pending(player))
                 {
-                    msg += " 仍有更多待领取，使用 /mid claim 继续领取。";
+                    msg += " 仍有更多待领取，使用 /mid claims recover oldest 继续领取。";
                 }
 
                 UtilityHelper.TryNotify(player, msg);
@@ -251,7 +242,7 @@ namespace FFEmqo.ModifiedItemDrop.Drop
                 var msg = $"已领取 {itemsRestored} 个物品和 {clothingRestored} 件衣物。";
                 if (hasMore)
                 {
-                    msg += " 仍有更多待领取，使用 /mid claim 继续领取。";
+                    msg += " 仍有更多待领取，使用 /mid claims recover oldest 继续领取。";
                 }
                 UtilityHelper.TryNotify(player, msg);
             }
@@ -302,63 +293,130 @@ namespace FFEmqo.ModifiedItemDrop.Drop
             }
         }
 
+        private bool RestoreInventory(UnturnedPlayer player, PendingRestore pending)
+        {
+            var inventory = player.Player?.inventory;
+            if (inventory == null)
+            {
+                return false;
+            }
+
+            var restored = 0;
+            for (var i = pending.InventoryItems.Count - 1; i >= 0; i--)
+            {
+                var pendingItem = pending.InventoryItems[i];
+                var item = pendingItem?.Item;
+                if (item == null || item.id == 0)
+                {
+                    pending.InventoryItems.RemoveAt(i);
+                    continue;
+                }
+
+                var ok = TryAddToPreferredPage(inventory, pendingItem);
+                if (!ok)
+                {
+                    ok = inventory.tryAddItem(UtilityHelper.CloneItem(item), true);
+                }
+
+                if (ok)
+                {
+                    pending.InventoryItems.RemoveAt(i);
+                    restored++;
+                }
+            }
+
+            DebugLog("Restored " + restored + " inventory Player Asset(s).");
+            return restored > 0;
+        }
+
+        private static bool TryAddToPreferredPage(PlayerInventory inventory, PendingInventoryItem pendingItem)
+        {
+            if (inventory?.items == null || pendingItem?.Item == null)
+            {
+                return false;
+            }
+
+            var sourcePage = pendingItem.SourcePage;
+            if (sourcePage >= inventory.items.Length || sourcePage >= PlayerInventory.PAGES)
+            {
+                return false;
+            }
+
+            var pageContainer = inventory.items[sourcePage];
+            if (pageContainer == null)
+            {
+                return false;
+            }
+
+            return pageContainer.tryAddItem(UtilityHelper.CloneItem(pendingItem.Item), true);
+        }
+
+        private bool RestoreClothing(UnturnedPlayer player, PendingRestore pending)
+        {
+            var clothing = player.Player?.clothing;
+            if (clothing == null)
+            {
+                return false;
+            }
+
+            var restored = 0;
+            for (var i = pending.ClothingItems.Count - 1; i >= 0; i--)
+            {
+                var snap = pending.ClothingItems[i];
+                if (snap?.Item == null || snap.Item.id == 0)
+                {
+                    pending.ClothingItems.RemoveAt(i);
+                    continue;
+                }
+
+                var state = snap.Item.state ?? Array.Empty<byte>();
+                if (!ClothingOperationHelper.TryWearClothing(clothing, snap.SlotType, snap.Item.id, snap.Item.quality, state))
+                {
+                    continue;
+                }
+
+                restored++;
+                RestoreClothingContentsToSlot(clothing, pending, snap.SlotType);
+                pending.ClothingItems.RemoveAt(i);
+            }
+
+            DebugLog("Restored " + restored + " clothing Player Asset(s).");
+            return restored > 0;
+        }
+
+        private static void RestoreClothingContentsToSlot(SDG.Unturned.PlayerClothing clothing, PendingRestore pending, SlotType slotType)
+        {
+            if (!pending.ClothingContentsToRestore.TryGetValue(slotType, out var contents))
+            {
+                return;
+            }
+
+            var container = PlayerExtensions.GetClothingContainer(clothing, slotType);
+            foreach (var item in contents)
+            {
+                if (item == null || item.id == 0)
+                {
+                    continue;
+                }
+
+                if (container == null || !container.tryAddItem(UtilityHelper.CloneItem(item), true))
+                {
+                    pending.InventoryItems.Add(new PendingInventoryItem(UtilityHelper.CloneItem(item), AnyInventoryPage));
+                }
+            }
+
+            pending.ClothingContentsToRestore.Remove(slotType);
+        }
+
+        private void DebugLog(string message)
+        {
+            LoggingHelper.LogDebug(message, _configurationLoader?.IsDebugLoggingEnabled ?? false);
+        }
+
         private bool HasV1Pending(UnturnedPlayer player)
         {
             return player != null && _claimService != null && _claimService.GetPendingCount((ulong)player.CSteamID) > 0;
         }
 
-        public void GiveRespawnItems(UnturnedPlayer player)
-        {
-            var respawnItems = _configurationLoader?.DeathSettings?.RespawnItems;
-            if (respawnItems == null || respawnItems.Count == 0)
-            {
-                return;
-            }
-
-            var inventory = player?.Player?.inventory;
-            if (inventory == null)
-            {
-                return;
-            }
-
-            var failedItems = new List<Item>();
-
-            foreach (var respawnItem in respawnItems)
-            {
-                if (respawnItem.ItemID == 0 || respawnItem.Amount == 0)
-                {
-                    continue;
-                }
-
-                for (int i = 0; i < respawnItem.Amount; i++)
-                {
-                    var item = new Item(respawnItem.ItemID, true) { quality = respawnItem.Quality };
-                    if (!inventory.tryAddItem(item, true))
-                    {
-                        failedItems.Add(item);
-                    }
-                }
-
-                LoggingHelper.LogDebug($"Gave respawn item: id={respawnItem.ItemID} x{respawnItem.Amount}", _configurationLoader?.IsDebugLoggingEnabled ?? false);
-            }
-
-            if (failedItems.Count > 0)
-            {
-                var claim = _claimService?.AddClaim((ulong)player.CSteamID, player.Position, failedItems, null);
-                if (claim != null)
-                {
-                    UtilityHelper.TryNotify(player, $"有 {failedItems.Count} 个复活物品空间不足，已存入待领取，使用 /mid claim 领取。");
-                }
-                else
-                {
-                    foreach (var item in failedItems)
-                    {
-                        UtilityHelper.DropWorldItem(item, player.Position);
-                    }
-                    UtilityHelper.TryNotify(player, $"{failedItems.Count} 个复活物品空间不足且 Claim 不可用，已掉落在当前位置。");
-                }
-            }
-        }
-
-    }
+   }
 }

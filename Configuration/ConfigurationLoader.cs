@@ -8,7 +8,6 @@ namespace FFEmqo.ModifiedItemDrop.Configuration
 {
     public sealed class ConfigurationLoader
     {
-        private DropRuleSet _currentRuleSet;
         private IReadOnlyList<OutcomeRule> _currentOutcomeRules = Array.Empty<OutcomeRule>();
         private OutcomeRuleConfigurationState _outcomeRuleState = OutcomeRuleConfigurationState.FromXml(DefaultOutcomeRules.Xml);
         private readonly ModifiedItemDropPlugin _plugin;
@@ -25,8 +24,6 @@ namespace FFEmqo.ModifiedItemDrop.Configuration
             ReloadFromConfiguration();
         }
 
-        public DropRuleSet CurrentRuleSet => _currentRuleSet;
-
         public IReadOnlyList<OutcomeRule> CurrentOutcomeRules => _currentOutcomeRules;
 
         public bool IsDeathProcessingEnabled => _outcomeRuleState.DeathProcessingEnabled;
@@ -35,32 +32,20 @@ namespace FFEmqo.ModifiedItemDrop.Configuration
 
         public HandsSlotSettings HandsSlotSettings => _plugin.Configuration?.Instance?.HandsSlotSettings ?? HandsSlotSettings.CreateDefault();
 
-        public DeathSettings DeathSettings => _plugin.Configuration?.Instance?.DeathSettings ?? DeathSettings.CreateDefault();
-
         public ConfigurationReloadSummary ReloadFromConfiguration()
         {
             var config = _plugin.Configuration?.Instance ?? new ModifiedItemDropConfiguration();
             var outcomeRulesXml = string.IsNullOrWhiteSpace(config.OutcomeRulesXml)
                 ? DefaultOutcomeRules.Xml
                 : config.OutcomeRulesXml;
-            var rawRuleSet = config.RuleSet ?? DropRuleSet.CreateDefault();
-            var normalizedRuleSet = rawRuleSet.NormalizedCopy();
-
             _outcomeRuleState = OutcomeRuleConfigurationState.FromXml(outcomeRulesXml);
             _currentOutcomeRules = _outcomeRuleState.Rules;
-            _currentRuleSet = normalizedRuleSet;
             IsDebugLoggingEnabled = config.EnableDebugLogging;
             IsClothingContentsDebugEnabled = config.EnableClothingContentsDebugLogging;
 
             var summary = new ConfigurationReloadSummary
             {
-                UsedDefaults = config.RuleSet == null,
-                RegionEntries = normalizedRuleSet.RegionChances?.Count ?? 0,
-                RegionDiscardedEntries = Math.Max(0, (rawRuleSet.RegionChances?.Count ?? 0) - (normalizedRuleSet.RegionChances?.Count ?? 0)),
-                CustomItemEntries = normalizedRuleSet.CustomItemChances?.Count ?? 0,
-                CustomItemDiscardedEntries = Math.Max(0, (rawRuleSet.CustomItemChances?.Count ?? 0) - (normalizedRuleSet.CustomItemChances?.Count ?? 0)),
-                ClothingEntries = normalizedRuleSet.ClothingRules?.Count ?? 0,
-                ClothingDiscardedEntries = Math.Max(0, (rawRuleSet.ClothingRules?.Count ?? 0) - (normalizedRuleSet.ClothingRules?.Count ?? 0)),
+                UsedDefaults = string.IsNullOrWhiteSpace(config.OutcomeRulesXml),
                 DebugLoggingEnabled = config.EnableDebugLogging,
                 ClothingContentsDebugEnabled = config.EnableClothingContentsDebugLogging,
                 DeathProcessingEnabled = _outcomeRuleState.DeathProcessingEnabled,

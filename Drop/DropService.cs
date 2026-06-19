@@ -22,7 +22,6 @@ namespace FFEmqo.ModifiedItemDrop.Drop
     public sealed class DropService
     {
         private readonly ConfigurationLoader _configurationLoader;
-        private readonly ChanceResolver _chanceResolver;
         private readonly V2DeathProcessingAdapter _v2DeathProcessingAdapter = new V2DeathProcessingAdapter();
         private readonly V2QuickSlotExecutionAdapter _v2QuickSlotExecutionAdapter = new V2QuickSlotExecutionAdapter();
         private readonly V2ClothingExecutionAdapter _v2ClothingExecutionAdapter = new V2ClothingExecutionAdapter();
@@ -34,8 +33,6 @@ namespace FFEmqo.ModifiedItemDrop.Drop
         private readonly Dictionary<CSteamID, DeathSession> _deathSessions = new Dictionary<CSteamID, DeathSession>();
         private readonly object _pendingRestoresLock = new object();
 
-        private volatile InventoryProcessor _inventoryProcessor;
-        private volatile ClothingProcessor _clothingProcessor;
         private volatile RestoreManager _restoreManager;
         private ClaimService _claimService;
         private IDurableClaimCreator _v2ClaimCreator;
@@ -46,36 +43,32 @@ namespace FFEmqo.ModifiedItemDrop.Drop
         public DropService(ConfigurationLoader configurationLoader)
         {
             _configurationLoader = configurationLoader ?? throw new ArgumentNullException(nameof(configurationLoader));
-            _chanceResolver = new ChanceResolver(configurationLoader.CurrentRuleSet);
-
-            InitializeProcessors();
+            InitializeRestoreManager();
         }
 
-        private void InitializeProcessors()
+        private void InitializeRestoreManager()
         {
-            _inventoryProcessor = new InventoryProcessor(_chanceResolver, _configurationLoader, GetRandom);
-            _clothingProcessor = new ClothingProcessor(_configurationLoader, GetRandom, _inventoryProcessor);
-            _restoreManager = new RestoreManager(_inventoryProcessor, _clothingProcessor, _claimService, _v2ClaimCreator, _v2ClaimRecoveryService, _configurationLoader);
+            _restoreManager = new RestoreManager(_claimService, _v2ClaimCreator, _v2ClaimRecoveryService, _configurationLoader);
         }
 
         public void SetClaimService(ClaimService claimService)
         {
             _claimService = claimService;
             // Reinitialize RestoreManager with the new claim service
-            _restoreManager = new RestoreManager(_inventoryProcessor, _clothingProcessor, _claimService, _v2ClaimCreator, _v2ClaimRecoveryService, _configurationLoader);
+            InitializeRestoreManager();
         }
 
         public void SetV2DurableClaimCreator(IDurableClaimCreator claimCreator)
         {
             _v2ClaimCreator = claimCreator;
             _v2DeathSessionFinalizer = claimCreator != null ? new DeathSessionFinalizer(claimCreator) : null;
-            _restoreManager = new RestoreManager(_inventoryProcessor, _clothingProcessor, _claimService, _v2ClaimCreator, _v2ClaimRecoveryService, _configurationLoader);
+            InitializeRestoreManager();
         }
 
         public void SetV2ClaimRecoveryService(V2ClaimRecoveryService claimRecoveryService)
         {
             _v2ClaimRecoveryService = claimRecoveryService;
-            _restoreManager = new RestoreManager(_inventoryProcessor, _clothingProcessor, _claimService, _v2ClaimCreator, _v2ClaimRecoveryService, _configurationLoader);
+            InitializeRestoreManager();
         }
 
         public void SetClaimStorageHealth(bool deathProcessingEnabled, string disabledReason)
@@ -89,22 +82,6 @@ namespace FFEmqo.ModifiedItemDrop.Drop
         public string ClaimStorageDisabledReason => _claimStorageDisabledReason;
 
         public bool IsV2ClaimRecoveryEnabled => _v2ClaimRecoveryService == null || _v2ClaimRecoveryService.RecoveryEnabled;
-
-        public void RefreshRules()
-        {
-            _chanceResolver.UpdateRuleSet(_configurationLoader.CurrentRuleSet);
-            InitializeProcessors();
-        }
-
-        public double PeekChance(SlotType slotType, ushort itemId, out string source)
-        {
-            return _chanceResolver.GetChance(slotType, itemId, out source);
-        }
-
-        public ClothingSlotRule ResolveClothingRule(SlotType slotType)
-        {
-            return _configurationLoader.CurrentRuleSet.ResolveClothingRule(slotType);
-        }
 
         public IEnumerable<string> BuildOutcomeRulePreviewLines(
             IEnumerable<InventoryItemSnapshot> inventorySnapshots,
@@ -161,45 +138,6 @@ namespace FFEmqo.ModifiedItemDrop.Drop
             var outcome = new DeathOutcomePlanner().Plan(target.Asset, _configurationLoader.CurrentOutcomeRules);
             return new[] { OutcomeRuleExplanationFormatter.FormatExplain(outcome) };
         }
-
-        public void SetRegionOverride(SlotType slotType, double chance)
-        {
-            _chanceResolver.SetRegionOverride(slotType.ToString(), UtilityHelper.ClampChance(chance));
-        }
-
-        public void SetItemOverride(ushort itemId, double chance)
-        {
-            _chanceResolver.SetItemOverride(itemId, UtilityHelper.ClampChance(chance));
-        }
-
-        public bool ClearRegionOverride(SlotType slotType)
-        {
-            return _chanceResolver.ClearRegionOverride(slotType.ToString());
-        }
-
-        public bool ClearItemOverride(ushort itemId)
-        {
-            return _chanceResolver.ClearItemOverride(itemId);
-        }
-
-        public void ClearAllOverrides()
-        {
-            _chanceResolver.ClearAllOverrides();
-        }
-
-        public void ClearAllRegionOverrides()
-        {
-            _chanceResolver.ClearAllRegionOverrides();
-        }
-
-        public void ClearAllItemOverrides()
-        {
-            _chanceResolver.ClearAllItemOverrides();
-        }
-
-        public IReadOnlyDictionary<string, double> RegionOverrides => _chanceResolver.RegionOverrides;
-
-        public IReadOnlyDictionary<ushort, double> ItemOverrides => _chanceResolver.ItemOverrides;
 
         public void HandlePlayerDying(UnturnedPlayer player)
         {

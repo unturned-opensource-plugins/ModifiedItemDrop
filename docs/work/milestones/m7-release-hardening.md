@@ -38,3 +38,23 @@ DOTNET_ROOT=/opt/homebrew/opt/dotnet@8/libexec PATH=/opt/homebrew/opt/dotnet@8/b
 DOTNET_ROOT=/opt/homebrew/opt/dotnet@8/libexec PATH=/opt/homebrew/opt/dotnet@8/bin:$PATH dotnet test ModifiedItemDrop.Domain.Tests/ModifiedItemDrop.Domain.Tests.csproj -v minimal --filter PackagedConfigurationTests
 # failed: packaged configuration still contained <RuleSet>
 ```
+
+## Slice 3 — Remove legacy v1 death-rule runtime tombstones
+
+Behavior: runtime code no longer depends on v1 `ChanceResolver`, `DropRuleSet`, `DeathSettings`, `InventoryProcessor`, `ClothingProcessor`, or legacy respawn grant execution. Pending restore recovery is now owned by `RestoreManager`, while death decisions remain owned by v2 Outcome Rules and execution adapters. User-facing Claim messages now point to `/mid claims recover oldest`.
+
+Red:
+
+```bash
+DOTNET_ROOT=/opt/homebrew/opt/dotnet@8/libexec PATH=/opt/homebrew/opt/dotnet@8/bin:$PATH dotnet test ModifiedItemDrop.Domain.Tests/ModifiedItemDrop.Domain.Tests.csproj -v minimal --filter LegacyRuntimeTombstoneTests
+# failed: runtime files still referenced ChanceResolver/DropRuleSet/DeathSettings/GiveRespawnItems
+```
+
+Green command:
+
+```bash
+DOTNET_ROOT=/opt/homebrew/opt/dotnet@8/libexec PATH=/opt/homebrew/opt/dotnet@8/bin:$PATH dotnet test ModifiedItemDrop.Domain.Tests/ModifiedItemDrop.Domain.Tests.csproj -v minimal
+DOTNET_ROOT=/opt/homebrew/opt/dotnet@8/libexec PATH=/opt/homebrew/opt/dotnet@8/bin:$PATH dotnet build ModifiedItemDrop.csproj -v minimal
+```
+
+Result: domain tests `Passed: 75, Failed: 0`; plugin build succeeded with `0 Warning(s), 0 Error(s)`.

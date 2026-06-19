@@ -101,18 +101,11 @@ namespace FFEmqo.ModifiedItemDrop.Plugin
                 sb.Append("Reloaded configuration.");
                 if (summary != null)
                 {
-                    sb.Append($" Regions: {summary.RegionEntries} (discarded {summary.RegionDiscardedEntries}).");
-                    sb.Append($" Custom items: {summary.CustomItemEntries} (discarded {summary.CustomItemDiscardedEntries}).");
-                    sb.Append($" Clothing rules: {summary.ClothingEntries} (discarded {summary.ClothingDiscardedEntries}).");
                     sb.Append($" Debug={summary.DebugLoggingEnabled} ContentsDebug={summary.ClothingContentsDebugEnabled}.");
-                    sb.Append(summary.DeathProcessingEnabled ? " DeathProcessing=enabled." : $" DeathProcessing=disabled: {summary.SafeModeReason}");
+                    sb.Append(summary.DeathProcessingEnabled ? " OutcomeRules=valid; DeathProcessing=enabled." : $" OutcomeRules=invalid; DeathProcessing=disabled: {summary.SafeModeReason}");
                     if (summary.UsedDefaults)
                     {
-                        sb.Append(" (RuleSet missing in config, loaded defaults.)");
-                    }
-                    if (summary.HasWarnings)
-                    {
-                        sb.Append(" (Some entries were invalid and ignored.)");
+                        sb.Append(" (OutcomeRulesXml missing, loaded v2 defaults.)");
                     }
                 }
 

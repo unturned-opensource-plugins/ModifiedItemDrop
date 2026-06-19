@@ -139,11 +139,6 @@ namespace FFEmqo.ModifiedItemDrop.Plugin
             }
 
             var result = ConfigurationLoader.TryReload(out summary, out error);
-            if (result)
-            {
-                DropService?.RefreshRules();
-            }
-
             return result;
         }
 
@@ -215,10 +210,9 @@ namespace FFEmqo.ModifiedItemDrop.Plugin
                 {
                     if (TryReloadConfiguration(out var summary, out var error))
                     {
-                        var regions = summary?.RegionEntries ?? 0;
-                        var items = summary?.CustomItemEntries ?? 0;
-                        var cloth = summary?.ClothingEntries ?? 0;
-                        LoggingHelper.LogInfo($"Auto-reloaded config. Regions={regions}, Items={items}, ClothingRules={cloth}.");
+                        LoggingHelper.LogInfo(summary?.DeathProcessingEnabled == true
+                            ? "Auto-reloaded config. Outcome Rules valid; death processing enabled."
+                            : $"Auto-reloaded config. Safe mode active: {summary?.SafeModeReason}");
                     }
                     else
                     {
