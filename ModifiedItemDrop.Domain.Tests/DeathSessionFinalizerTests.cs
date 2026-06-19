@@ -96,6 +96,29 @@ public sealed class DeathSessionFinalizerTests
     }
 
 
+
+    [Fact]
+    public void DisconnectWithSuccessfulDurableClaimCreationEndsSessionWithoutFallback()
+    {
+        var asset = new PlayerAsset("secondary", PlayerAssetSlot.SecondaryWeapon, itemId: 101);
+        var keptOutcome = new PlayerAssetOutcome(
+            asset,
+            PlayerAssetOutcomeKind.Keep,
+            OutcomeRule.Keep("keep secondary", 100, OutcomeTarget.Any(), chance: 1.0));
+        var session = new DeathSession("session-4", steamId: 76561198000000001UL, outcomes: new[] { keptOutcome });
+        var claimCreator = new RecordingDurableClaimCreator(DurableClaimCreateResult.Success());
+        var finalizer = new DeathSessionFinalizer(claimCreator);
+
+        var result = finalizer.FinalizeDisconnect(session);
+
+        Assert.True(result.SessionEnded);
+        Assert.True(result.DurableClaimCreated);
+        Assert.Empty(result.FallbackDecisions);
+        var claim = Assert.Single(claimCreator.CreatedClaims);
+        Assert.Equal("secondary", Assert.Single(claim.Assets).AssetId);
+    }
+
+
     private sealed class RecordingDurableClaimCreator : IDurableClaimCreator
     {
         private readonly DurableClaimCreateResult _result;

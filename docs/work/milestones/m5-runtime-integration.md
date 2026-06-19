@@ -88,3 +88,17 @@ DOTNET_ROOT=/opt/homebrew/opt/dotnet@8/libexec PATH=/opt/homebrew/opt/dotnet@8/b
 Green result: `Passed: 31, Failed: 0`.
 
 Review note: this pins the domain gating semantics. Runtime revive/respawn event mapping remains an adapter slice.
+
+## Slice 6 — Disconnect successful Durable Claim path
+
+Behavior: when a player disconnects during a Death Session and Durable Claim creation succeeds, the session ends without Drop fallback and the kept Player Assets are represented in the created claim.
+
+Result: this test passed immediately because Slice 1 and Slice 2 share the finalization implementation. It is retained as explicit disconnect success-path coverage.
+
+Verification command:
+
+```bash
+DOTNET_ROOT=/opt/homebrew/opt/dotnet@8/libexec PATH=/opt/homebrew/opt/dotnet@8/bin:$PATH dotnet test ModifiedItemDrop.Domain.Tests/ModifiedItemDrop.Domain.Tests.csproj -v minimal
+```
+
+Result: `Passed: 32, Failed: 0`.
