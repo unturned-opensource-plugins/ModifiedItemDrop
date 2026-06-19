@@ -12,7 +12,8 @@ namespace FFEmqo.ModifiedItemDrop.Domain
                 itemId,
                 amount,
                 quality,
-                state);
+                state)
+                .WithInventoryLocation(page, index);
         }
 
         public static PlayerAsset Clothing(PlayerAssetSlot slot, ushort itemId, byte amount, byte quality, byte[]? state)

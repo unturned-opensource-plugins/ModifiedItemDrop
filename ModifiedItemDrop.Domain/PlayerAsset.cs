@@ -10,7 +10,7 @@ namespace FFEmqo.ModifiedItemDrop.Domain
         }
 
         public PlayerAsset(string id, PlayerAssetSlot slot, ushort itemId, byte amount, byte quality, byte[]? state)
-            : this(id, slot, itemId, amount, quality, state, isClothingContent: false, sourceClothingSlot: null, parentAssetId: null)
+            : this(id, slot, itemId, amount, quality, state, isClothingContent: false, sourceClothingSlot: null, parentAssetId: null, inventoryPage: null, inventoryIndex: null)
         {
         }
 
@@ -23,7 +23,9 @@ namespace FFEmqo.ModifiedItemDrop.Domain
             byte[]? state,
             bool isClothingContent,
             PlayerAssetSlot? sourceClothingSlot,
-            string? parentAssetId)
+            string? parentAssetId,
+            byte? inventoryPage,
+            byte? inventoryIndex)
         {
             if (string.IsNullOrWhiteSpace(id))
             {
@@ -44,6 +46,8 @@ namespace FFEmqo.ModifiedItemDrop.Domain
             IsClothingContent = isClothingContent;
             SourceClothingSlot = sourceClothingSlot;
             ParentAssetId = parentAssetId;
+            InventoryPage = inventoryPage;
+            InventoryIndex = inventoryIndex;
         }
 
         public string Id { get; }
@@ -63,6 +67,26 @@ namespace FFEmqo.ModifiedItemDrop.Domain
         public PlayerAssetSlot? SourceClothingSlot { get; }
 
         public string? ParentAssetId { get; }
+
+        public byte? InventoryPage { get; }
+
+        public byte? InventoryIndex { get; }
+
+        public PlayerAsset WithInventoryLocation(byte page, byte index)
+        {
+            return new PlayerAsset(
+                Id,
+                Slot,
+                ItemId,
+                Amount,
+                Quality,
+                State,
+                IsClothingContent,
+                SourceClothingSlot,
+                ParentAssetId,
+                page,
+                index);
+        }
 
         public static PlayerAsset ClothingContent(
             string id,
@@ -91,7 +115,9 @@ namespace FFEmqo.ModifiedItemDrop.Domain
                 state,
                 isClothingContent: true,
                 sourceClothingSlot: sourceClothingSlot,
-                parentAssetId: parentAssetId);
+                parentAssetId: parentAssetId,
+                inventoryPage: null,
+                inventoryIndex: null);
         }
     }
 }

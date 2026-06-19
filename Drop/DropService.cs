@@ -21,6 +21,7 @@ namespace FFEmqo.ModifiedItemDrop.Drop
     {
         private readonly ConfigurationLoader _configurationLoader;
         private readonly ChanceResolver _chanceResolver;
+        private readonly V2QuickSlotExecutionAdapter _v2QuickSlotExecutionAdapter = new V2QuickSlotExecutionAdapter();
         [ThreadStatic] private static System.Random _random;
         private static System.Random GetRandom() => _random ?? (_random = new System.Random(Environment.TickCount ^ System.Threading.Thread.CurrentThread.ManagedThreadId));
         private readonly Dictionary<CSteamID, PendingRestore> _pendingRestores = new Dictionary<CSteamID, PendingRestore>();
@@ -270,6 +271,16 @@ namespace FFEmqo.ModifiedItemDrop.Drop
         private void DebugLog(string message)
         {
             LoggingHelper.LogDebug(message, _configurationLoader.IsDebugLoggingEnabled);
+        }
+
+        private void ExecuteV2QuickSlotPlan(
+            PlayerInventory inventory,
+            IEnumerable<InventoryItemSnapshot> snapshots,
+            DeathOutcomeExecutionPlan executionPlan,
+            PendingRestore pending,
+            Vector3 deathPosition)
+        {
+            _v2QuickSlotExecutionAdapter.Execute(inventory, snapshots, executionPlan, pending, deathPosition);
         }
 
         /// <summary>

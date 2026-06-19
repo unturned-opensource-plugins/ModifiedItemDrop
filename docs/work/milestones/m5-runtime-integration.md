@@ -256,3 +256,28 @@ DOTNET_ROOT=/opt/homebrew/opt/dotnet@8/libexec PATH=/opt/homebrew/opt/dotnet@8/b
 Result: plugin build succeeded with `0 Warning(s), 0 Error(s)`; domain tests `Passed: 41, Failed: 0`.
 
 Review note: `DeathProcessingResult` now includes both the canonical `DeathOutcomePlan` and the runtime-oriented `DeathOutcomeExecutionPlan`. This keeps action selection in the pure domain model while leaving actual Unturned mutation inside adapter/runtime code.
+
+## Slice 16 — Quick-slot execution adapter consumes v2 actions
+
+Behavior: v2 quick-slot runtime execution can consume `DeathOutcomeExecutionPlan` without parsing string asset ids. Inventory-projected `PlayerAsset` values preserve source page/index; the quick-slot adapter removes the original runtime item exactly once, then performs the selected action: Drop to world, Delete silently, or Keep into `PendingRestore` for respawn/Claim responsibility.
+
+Red: `dotnet test` failed because `PlayerAsset` did not expose `InventoryPage`/`InventoryIndex`.
+
+Green command:
+
+```bash
+DOTNET_ROOT=/opt/homebrew/opt/dotnet@8/libexec PATH=/opt/homebrew/opt/dotnet@8/bin:$PATH dotnet test ModifiedItemDrop.Domain.Tests/ModifiedItemDrop.Domain.Tests.csproj -v minimal
+DOTNET_ROOT=/opt/homebrew/opt/dotnet@8/libexec PATH=/opt/homebrew/opt/dotnet@8/bin:$PATH dotnet build ModifiedItemDrop.csproj -v minimal
+```
+
+Result: plugin build succeeded with `0 Warning(s), 0 Error(s)`; domain tests `Passed: 41, Failed: 0`.
+
+Additional invariant check:
+
+```bash
+rg -n "Rocket|Unturned|Unity|Steamworks|SDG" ModifiedItemDrop.Domain ModifiedItemDrop.Domain.Tests -g'*.cs'
+```
+
+Result: no matches.
+
+Review note: `Drop/V2QuickSlotExecutionAdapter.cs` is the first concrete runtime mutator for v2 `ExecutionPlan`. `DropService` now has a seam for invoking it; the next slice should replace the primary quick-slot branch in `HandlePlayerDying` with this adapter once v2 rules are available from configuration.

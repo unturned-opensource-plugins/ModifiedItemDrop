@@ -26,6 +26,8 @@ public sealed class PlayerAssetProjectionTests
         Assert.Equal(2, asset.Amount);
         Assert.Equal(75, asset.Quality);
         Assert.Equal(new byte[] { 9, 8, 7 }, asset.State);
+        Assert.Equal((byte)0, asset.InventoryPage);
+        Assert.Equal((byte)1, asset.InventoryIndex);
         Assert.False(asset.IsClothingContent);
     }
 
