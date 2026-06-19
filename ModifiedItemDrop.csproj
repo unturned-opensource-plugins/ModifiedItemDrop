@@ -13,10 +13,16 @@
 
   <ItemGroup>
     <Compile Remove="tempInspect\**\*.cs" />
+    <Compile Remove="ModifiedItemDrop.Domain\**\*.cs" />
+    <Compile Remove="ModifiedItemDrop.Domain.Tests\**\*.cs" />
     <Compile Remove="参考插件\**" />
     <EmbeddedResource Remove="tempInspect\**\*" />
+    <EmbeddedResource Remove="ModifiedItemDrop.Domain\**\*" />
+    <EmbeddedResource Remove="ModifiedItemDrop.Domain.Tests\**\*" />
     <EmbeddedResource Remove="参考插件\**" />
     <None Remove="tempInspect\**\*" />
+    <None Remove="ModifiedItemDrop.Domain\**\*" />
+    <None Remove="ModifiedItemDrop.Domain.Tests\**\*" />
     <None Remove="参考插件\**" />
   </ItemGroup>
 
