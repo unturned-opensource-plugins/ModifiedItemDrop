@@ -648,3 +648,32 @@ V2 work will happen directly on `main`. Because v2 is intentionally breaking, `m
 - Milestone review bases are recorded before each implementation milestone starts.
 - If emergency v1 maintenance is needed, it must branch from the `v1.0.3` tag or another known v1 release tag.
 - Documentation clearly states when `main` has entered v2 development.
+
+## Test project architecture
+
+M1 must introduce a separate pure domain project and xUnit test project before v2 runtime integration begins.
+
+```text
+ModifiedItemDrop.Domain
+ModifiedItemDrop.Domain.Tests
+ModifiedItemDrop
+```
+
+**ModifiedItemDrop.Domain**:
+
+- Contains the pure v2 domain model for Player Assets, Outcome Rules, Player Asset Outcomes, and Death Outcome planning.
+- Must not reference Rocket, RocketMod, Unturned, Unity, Steamworks, or plugin runtime APIs.
+- Must expose public behavior-oriented interfaces that tests can exercise without a live server.
+
+**ModifiedItemDrop.Domain.Tests**:
+
+- Uses xUnit.
+- Targets modern .NET where practical for fast local and CI execution.
+- Starts with the M1 tracer bullet: a primary weapon Player Asset plus a Drop chance `1.0` Outcome Rule produces a Drop Player Asset Outcome.
+- Adds tests one behavior at a time using red-green-refactor.
+
+**ModifiedItemDrop**:
+
+- Remains the RocketMod plugin project.
+- Integrates the Domain project only after domain behavior is specified by tests.
+- Must not pull Rocket/Unturned concepts back into the Domain project.
