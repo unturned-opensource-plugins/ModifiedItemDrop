@@ -4,6 +4,7 @@ namespace FFEmqo.ModifiedItemDrop.Domain
     {
         PrimaryWeapon = 1,
         SecondaryWeapon = 2,
-        Backpack = 3
+        Hands = 3,
+        Backpack = 4
     }
 }

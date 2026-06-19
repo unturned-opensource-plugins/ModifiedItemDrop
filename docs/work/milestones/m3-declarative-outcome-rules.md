@@ -59,3 +59,19 @@ DOTNET_ROOT=/opt/homebrew/opt/dotnet@8/libexec PATH=/opt/homebrew/opt/dotnet@8/b
 Green result: `Passed: 5, Failed: 0`.
 
 Review note: existing tests now include explicit fallback rules where they represent valid v2 rule configuration. This removes the early tracer's temporary one-rule shortcut from final M3 semantics while preserving the original M1 milestone evidence.
+
+## Slice 4 — Hands top-level slot target
+
+Behavior: a top-level Player Asset in the Hands slot can be targeted by an Outcome Rule and resolved independently of the fallback rule.
+
+Red: `dotnet test` failed because `PlayerAssetSlot.Hands` did not exist.
+
+Green command:
+
+```bash
+DOTNET_ROOT=/opt/homebrew/opt/dotnet@8/libexec PATH=/opt/homebrew/opt/dotnet@8/bin:$PATH dotnet test ModifiedItemDrop.Domain.Tests/ModifiedItemDrop.Domain.Tests.csproj -v minimal
+```
+
+Green result: `Passed: 6, Failed: 0`.
+
+Review note: this is the v2 Outcome Rule target slot, not the later Inventory Capability implementation for hands slot sizing.

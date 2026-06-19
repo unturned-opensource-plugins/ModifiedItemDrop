@@ -91,6 +91,23 @@ public sealed class DeathOutcomePlannerTests
         Assert.Contains("catch-all", exception.Message);
     }
 
+
+    [Fact]
+    public void HandsSlotRuleCanResolveTopLevelAssetOutcome()
+    {
+        var asset = new PlayerAsset("hands", PlayerAssetSlot.Hands, itemId: 116);
+        var rules = new[]
+        {
+            OutcomeRule.Keep("keep hands item", 100, OutcomeTarget.ForSlot(PlayerAssetSlot.Hands), chance: 1.0),
+            OutcomeRule.Drop("fallback drop", 0, OutcomeTarget.Any(), chance: 1.0)
+        };
+
+        var outcome = new DeathOutcomePlanner().Plan(asset, rules);
+
+        Assert.Equal(PlayerAssetOutcomeKind.Keep, outcome.Kind);
+        Assert.Equal("keep hands item", outcome.Rule.Name);
+    }
+
 }
 
 
