@@ -72,3 +72,19 @@ DOTNET_ROOT=/opt/homebrew/opt/dotnet@8/libexec PATH=/opt/homebrew/opt/dotnet@8/b
 Green result: `Passed: 29, Failed: 0`.
 
 Review note: this pins the domain finalization behavior for exception handling. Runtime try/catch integration remains an adapter slice.
+
+## Slice 5 — Respawn Grant requires tracked Death Session
+
+Behavior: `AfterDeathRespawn` Grant rules execute only when a tracked Death Session reaches respawn, and only once per session. Revive/respawn without a tracked Death Session produces no grant.
+
+Red: `dotnet test` failed because `DeathSessionRespawnGrantPlanner` did not exist.
+
+Green command:
+
+```bash
+DOTNET_ROOT=/opt/homebrew/opt/dotnet@8/libexec PATH=/opt/homebrew/opt/dotnet@8/bin:$PATH dotnet test ModifiedItemDrop.Domain.Tests/ModifiedItemDrop.Domain.Tests.csproj -v minimal
+```
+
+Green result: `Passed: 31, Failed: 0`.
+
+Review note: this pins the domain gating semantics. Runtime revive/respawn event mapping remains an adapter slice.
