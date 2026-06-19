@@ -53,4 +53,33 @@ public sealed class OutcomeRuleXmlParserTests
         Assert.Equal("Delete banned item", outcome.Rule.Name);
     }
 
+
+    [Fact]
+    public void NestedXmlClothingContentTargetCanKeepContentFromSourceSlot()
+    {
+        var xml = """
+            <OutcomeRules>
+              <Rule name="Keep backpack content" priority="100">
+                <Target kind="ClothingContent" slot="Backpack" />
+                <Outcome kind="Keep" />
+              </Rule>
+              <Rule name="Default drop" priority="0">
+                <Target kind="Any" />
+                <Outcome kind="Drop" chance="1.0" />
+              </Rule>
+            </OutcomeRules>
+            """;
+        var content = PlayerAsset.ClothingContent(
+            "content-1",
+            sourceClothingSlot: PlayerAssetSlot.Backpack,
+            parentAssetId: "backpack",
+            itemId: 15);
+
+        var rules = OutcomeRuleXmlParser.Parse(xml);
+        var outcome = new DeathOutcomePlanner().Plan(content, rules);
+
+        Assert.Equal(PlayerAssetOutcomeKind.Keep, outcome.Kind);
+        Assert.Equal("Keep backpack content", outcome.Rule.Name);
+    }
+
 }

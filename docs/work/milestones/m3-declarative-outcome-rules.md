@@ -107,3 +107,19 @@ DOTNET_ROOT=/opt/homebrew/opt/dotnet@8/libexec PATH=/opt/homebrew/opt/dotnet@8/b
 Green result: `Passed: 8, Failed: 0`.
 
 Review note: this is the domain-level equivalent of v1 `DeleteOnDeathItems`; migration docs still need an explicit example later in M3.
+
+## Slice 7 — XML ClothingContent target
+
+Behavior: a nested XML rule can target Clothing Content by source clothing slot, distinct from the top-level clothing item itself.
+
+Red: `dotnet test` failed because the parser rejected `Target kind="ClothingContent"`.
+
+Green command:
+
+```bash
+DOTNET_ROOT=/opt/homebrew/opt/dotnet@8/libexec PATH=/opt/homebrew/opt/dotnet@8/bin:$PATH dotnet test ModifiedItemDrop.Domain.Tests/ModifiedItemDrop.Domain.Tests.csproj -v minimal
+```
+
+Green result: `Passed: 9, Failed: 0`.
+
+Review note: the parsed rule reuses the canonical `PlayerAsset.ClothingContent` model from M2 rather than creating a side collection.

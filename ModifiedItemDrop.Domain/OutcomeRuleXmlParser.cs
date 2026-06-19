@@ -58,6 +58,8 @@ namespace FFEmqo.ModifiedItemDrop.Domain
                     return OutcomeTarget.ForSlot(ParseSlot(RequiredAttribute(targetElement, "slot")));
                 case "Item":
                     return OutcomeTarget.ForItem(ParseUShort(RequiredAttribute(targetElement, "itemId"), "itemId"));
+                case "ClothingContent":
+                    return OutcomeTarget.ForClothingContent(ParseSlot(RequiredAttribute(targetElement, "slot")));
                 default:
                     throw new InvalidOutcomeRuleConfigurationException("Unsupported Target kind '" + kind + "'.");
             }
