@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using FFEmqo.ModifiedItemDrop.Claim;
 using FFEmqo.ModifiedItemDrop.Configuration;
+using FFEmqo.ModifiedItemDrop.Domain;
 using FFEmqo.ModifiedItemDrop.Models;
 using FFEmqo.ModifiedItemDrop.Utilities;
 using Rocket.API;
@@ -29,6 +30,7 @@ namespace FFEmqo.ModifiedItemDrop.Drop
         private volatile ClothingProcessor _clothingProcessor;
         private volatile RestoreManager _restoreManager;
         private ClaimService _claimService;
+        private IDurableClaimCreator _v2ClaimCreator;
 
         public DropService(ConfigurationLoader configurationLoader)
         {
@@ -42,14 +44,20 @@ namespace FFEmqo.ModifiedItemDrop.Drop
         {
             _inventoryProcessor = new InventoryProcessor(_chanceResolver, _configurationLoader, GetRandom);
             _clothingProcessor = new ClothingProcessor(_configurationLoader, GetRandom, _inventoryProcessor);
-            _restoreManager = new RestoreManager(_inventoryProcessor, _clothingProcessor, _claimService, _configurationLoader);
+            _restoreManager = new RestoreManager(_inventoryProcessor, _clothingProcessor, _claimService, _v2ClaimCreator, _configurationLoader);
         }
 
         public void SetClaimService(ClaimService claimService)
         {
             _claimService = claimService;
             // Reinitialize RestoreManager with the new claim service
-            _restoreManager = new RestoreManager(_inventoryProcessor, _clothingProcessor, _claimService, _configurationLoader);
+            _restoreManager = new RestoreManager(_inventoryProcessor, _clothingProcessor, _claimService, _v2ClaimCreator, _configurationLoader);
+        }
+
+        public void SetV2DurableClaimCreator(IDurableClaimCreator claimCreator)
+        {
+            _v2ClaimCreator = claimCreator;
+            _restoreManager = new RestoreManager(_inventoryProcessor, _clothingProcessor, _claimService, _v2ClaimCreator, _configurationLoader);
         }
 
         public void RefreshRules()

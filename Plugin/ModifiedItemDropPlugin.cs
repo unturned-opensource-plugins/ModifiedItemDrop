@@ -53,6 +53,7 @@ namespace FFEmqo.ModifiedItemDrop.Plugin
             _v2DurableClaimCreator = new V2DurableClaimCreator(_v2DurableClaimStore);
 
             DropService.SetClaimService(_claimService);
+            DropService.SetV2DurableClaimCreator(_v2DurableClaimCreator);
 
             _deathHandler = new PlayerDeathHandler(DropService, _claimService);
             _deathHandler.Enable();

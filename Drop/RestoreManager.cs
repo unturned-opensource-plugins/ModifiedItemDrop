@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using FFEmqo.ModifiedItemDrop.Claim;
 using FFEmqo.ModifiedItemDrop.Configuration;
+using FFEmqo.ModifiedItemDrop.Domain;
 using FFEmqo.ModifiedItemDrop.Models;
 using FFEmqo.ModifiedItemDrop.Utilities;
 using Rocket.Unturned.Player;
@@ -19,13 +20,25 @@ namespace FFEmqo.ModifiedItemDrop.Drop
         private readonly InventoryProcessor _inventoryProcessor;
         private readonly ClothingProcessor _clothingProcessor;
         private readonly ClaimService _claimService;
+        private readonly IDurableClaimCreator _v2ClaimCreator;
         private readonly ConfigurationLoader _configurationLoader;
 
         public RestoreManager(InventoryProcessor inventoryProcessor, ClothingProcessor clothingProcessor, ClaimService claimService, ConfigurationLoader configurationLoader)
+            : this(inventoryProcessor, clothingProcessor, claimService, null, configurationLoader)
+        {
+        }
+
+        public RestoreManager(
+            InventoryProcessor inventoryProcessor,
+            ClothingProcessor clothingProcessor,
+            ClaimService claimService,
+            IDurableClaimCreator v2ClaimCreator,
+            ConfigurationLoader configurationLoader)
         {
             _inventoryProcessor = inventoryProcessor ?? throw new ArgumentNullException(nameof(inventoryProcessor));
             _clothingProcessor = clothingProcessor ?? throw new ArgumentNullException(nameof(clothingProcessor));
             _claimService = claimService;
+            _v2ClaimCreator = v2ClaimCreator;
             _configurationLoader = configurationLoader;
         }
 
@@ -65,6 +78,21 @@ namespace FFEmqo.ModifiedItemDrop.Drop
         {
             if (pending == null || pending.IsEmpty)
             {
+                return false;
+            }
+
+            if (_v2ClaimCreator != null)
+            {
+                var claimId = Guid.NewGuid().ToString("N");
+                var v2Claim = PendingRestoreV2ClaimAdapter.ToDurableClaimRecord(claimId, steamId, pending);
+                var createResult = _v2ClaimCreator.TryCreate(v2Claim);
+                if (createResult.Created)
+                {
+                    return true;
+                }
+
+                LoggingHelper.LogWarning("[ModifiedItemDrop] V2 Durable Claim creation failed; dropping pending Player Assets. " + createResult.ErrorMessage);
+                DropPendingToGround(pending);
                 return false;
             }
 

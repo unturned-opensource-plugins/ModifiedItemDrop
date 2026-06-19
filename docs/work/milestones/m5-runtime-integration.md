@@ -131,3 +131,18 @@ DOTNET_ROOT=/opt/homebrew/opt/dotnet@8/libexec PATH=/opt/homebrew/opt/dotnet@8/b
 ```
 
 Result: plugin build succeeded with `0 Warning(s), 0 Error(s)`; domain tests `Passed: 33, Failed: 0`.
+
+## Slice 9 — PendingRestore uses v2 Durable Claim adapter
+
+Behavior: runtime pending restores can be converted to v2 `DurableClaimRecord` assets and `RestoreManager.SavePendingToClaimOrDrop` prefers the v2 Durable Claim creator when configured. If v2 Durable Claim creation fails, the existing Drop fallback path is used.
+
+Verification command:
+
+```bash
+DOTNET_ROOT=/opt/homebrew/opt/dotnet@8/libexec PATH=/opt/homebrew/opt/dotnet@8/bin:$PATH dotnet build ModifiedItemDrop.csproj -v minimal
+DOTNET_ROOT=/opt/homebrew/opt/dotnet@8/libexec PATH=/opt/homebrew/opt/dotnet@8/bin:$PATH dotnet test ModifiedItemDrop.Domain.Tests/ModifiedItemDrop.Domain.Tests.csproj -v minimal
+```
+
+Result: plugin build succeeded with `0 Warning(s), 0 Error(s)`; domain tests `Passed: 33, Failed: 0`.
+
+Review note: v1 `ClaimService` remains available for existing claim commands until the v2 command/Claim Recovery slices replace it.
