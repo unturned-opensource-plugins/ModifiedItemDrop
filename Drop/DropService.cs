@@ -27,6 +27,7 @@ namespace FFEmqo.ModifiedItemDrop.Drop
         private readonly V2QuickSlotExecutionAdapter _v2QuickSlotExecutionAdapter = new V2QuickSlotExecutionAdapter();
         private readonly V2ClothingExecutionAdapter _v2ClothingExecutionAdapter = new V2ClothingExecutionAdapter();
         private readonly DeathSessionRespawnGrantPlanner _v2RespawnGrantPlanner = new DeathSessionRespawnGrantPlanner();
+        private DeathSessionFinalizer _v2DeathSessionFinalizer;
         [ThreadStatic] private static System.Random _random;
         private static System.Random GetRandom() => _random ?? (_random = new System.Random(Environment.TickCount ^ System.Threading.Thread.CurrentThread.ManagedThreadId));
         private readonly Dictionary<CSteamID, PendingRestore> _pendingRestores = new Dictionary<CSteamID, PendingRestore>();
@@ -67,6 +68,7 @@ namespace FFEmqo.ModifiedItemDrop.Drop
         public void SetV2DurableClaimCreator(IDurableClaimCreator claimCreator)
         {
             _v2ClaimCreator = claimCreator;
+            _v2DeathSessionFinalizer = claimCreator != null ? new DeathSessionFinalizer(claimCreator) : null;
             _restoreManager = new RestoreManager(_inventoryProcessor, _clothingProcessor, _claimService, _v2ClaimCreator, _v2ClaimRecoveryService, _configurationLoader);
         }
 
@@ -312,9 +314,12 @@ namespace FFEmqo.ModifiedItemDrop.Drop
             }
 
             PendingRestore pending;
+            DeathSession deathSession;
             lock (_pendingRestoresLock)
             {
-                if (!_pendingRestores.TryGetValue(player.CSteamID, out pending))
+                var hasPending = _pendingRestores.TryGetValue(player.CSteamID, out pending);
+                var hasSession = _deathSessions.TryGetValue(player.CSteamID, out deathSession);
+                if (!hasPending && !hasSession)
                 {
                     return;
                 }
@@ -322,13 +327,60 @@ namespace FFEmqo.ModifiedItemDrop.Drop
                 _deathSessions.Remove(player.CSteamID);
             }
 
-            if (!pending.IsEmpty)
+            if (deathSession != null)
+            {
+                FinalizeDeathSessionOnDisconnect(deathSession, player.Position);
+                return;
+            }
+
+            if (pending != null && !pending.IsEmpty)
             {
                 var steamId = (ulong)player.CSteamID;
                 var saved = _restoreManager.SavePendingToClaimOrDrop(steamId, pending);
                 DebugLog(saved
                     ? $"Player {player.CharacterName} disconnected, saved {pending.InventoryItems.Count} items and {pending.ClothingItems.Count} clothing to claim storage."
                     : $"Player {player.CharacterName} disconnected, dropped pending items because claim storage is unavailable or disabled.");
+            }
+        }
+
+        private void FinalizeDeathSessionOnDisconnect(DeathSession deathSession, Vector3 fallbackPosition)
+        {
+            if (deathSession == null || _v2DeathSessionFinalizer == null)
+            {
+                return;
+            }
+
+            var result = _v2DeathSessionFinalizer.FinalizeDisconnect(deathSession);
+            ExecuteFallbackDecisions(result, fallbackPosition);
+        }
+
+        private void FinalizeDeathSessionOnPluginUnload(DeathSession deathSession)
+        {
+            if (deathSession == null || _v2DeathSessionFinalizer == null)
+            {
+                return;
+            }
+
+            var result = _v2DeathSessionFinalizer.FinalizePluginUnload(deathSession);
+            ExecuteFallbackDecisions(result, Vector3.zero);
+        }
+
+        private static void ExecuteFallbackDecisions(DeathSessionFinalizationResult result, Vector3 fallbackPosition)
+        {
+            if (result?.FallbackDecisions == null)
+            {
+                return;
+            }
+
+            foreach (var decision in result.FallbackDecisions)
+            {
+                if (decision.Kind != DurableClaimFallbackKind.DropFallback || decision.Asset == null || decision.Asset.ItemId == 0)
+                {
+                    continue;
+                }
+
+                var item = new Item(decision.Asset.ItemId, decision.Asset.Amount, decision.Asset.Quality, decision.Asset.State ?? Array.Empty<byte>());
+                UtilityHelper.DropWorldItem(item, fallbackPosition);
             }
         }
 
@@ -358,19 +410,26 @@ namespace FFEmqo.ModifiedItemDrop.Drop
         public void FlushPendingRestores()
         {
             List<KeyValuePair<CSteamID, PendingRestore>> snapshot;
+            List<DeathSession> sessionSnapshot;
             lock (_pendingRestoresLock)
             {
-                if (_pendingRestores.Count == 0)
+                if (_pendingRestores.Count == 0 && _deathSessions.Count == 0)
                 {
                     return;
                 }
                 snapshot = new List<KeyValuePair<CSteamID, PendingRestore>>(_pendingRestores);
+                sessionSnapshot = new List<DeathSession>(_deathSessions.Values);
                 _pendingRestores.Clear();
                 _deathSessions.Clear();
             }
 
             foreach (var kvp in snapshot)
             {
+                if (sessionSnapshot.Any(session => session.SteamId == (ulong)kvp.Key))
+                {
+                    continue;
+                }
+
                 var pending = kvp.Value;
                 if (!pending.IsEmpty)
                 {
@@ -378,7 +437,12 @@ namespace FFEmqo.ModifiedItemDrop.Drop
                 }
             }
 
-            DebugLog($"Flushed {snapshot.Count} pending restores to claim storage on shutdown.");
+            foreach (var deathSession in sessionSnapshot)
+            {
+                FinalizeDeathSessionOnPluginUnload(deathSession);
+            }
+
+            DebugLog($"Flushed {snapshot.Count} pending restores and {sessionSnapshot.Count} death sessions to claim storage on shutdown.");
         }
 
         private void DebugLog(string message)

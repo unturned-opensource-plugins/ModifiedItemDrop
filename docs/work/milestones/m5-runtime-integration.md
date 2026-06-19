@@ -393,3 +393,18 @@ rg -n "\\.ProcessInventory\\(|\\.ProcessClothing\\(|GiveRespawnItems\\(" Drop Pl
 Result: plugin build succeeded with `0 Warning(s), 0 Error(s)`; domain tests `Passed: 45, Failed: 0`. The legacy invocation scan reports only the remaining `GiveRespawnItems` method definition, not runtime calls.
 
 Review note: legacy processor classes and preview/override command surfaces still exist and should be removed or replaced during M6/M7 cleanup, but M5 death/revive execution no longer depends on v1 chance/death settings.
+
+## Slice 24 — Disconnect and unload finalize tracked Death Sessions
+
+Behavior: runtime disconnect and plugin unload now finalize tracked v2 `DeathSession` responsibility through `DeathSessionFinalizer`, creating Durable Claims for kept Player Assets or executing Drop fallback decisions if Durable Claim creation fails. Pending restore is no longer saved in addition to the tracked Death Session, avoiding duplicate Claim creation for the same assets; pending restore is only used as a fallback for legacy/edge pending state without a tracked session.
+
+Verification command:
+
+```bash
+DOTNET_ROOT=/opt/homebrew/opt/dotnet@8/libexec PATH=/opt/homebrew/opt/dotnet@8/bin:$PATH dotnet test ModifiedItemDrop.Domain.Tests/ModifiedItemDrop.Domain.Tests.csproj -v minimal
+DOTNET_ROOT=/opt/homebrew/opt/dotnet@8/libexec PATH=/opt/homebrew/opt/dotnet@8/bin:$PATH dotnet build ModifiedItemDrop.csproj -v minimal
+```
+
+Result: plugin build succeeded with `0 Warning(s), 0 Error(s)`; domain tests `Passed: 45, Failed: 0`.
+
+Review note: this wires the M5 domain finalizer into runtime disconnect/unload. If the plugin unload fallback cannot create a Durable Claim, Drop fallback currently uses the best available runtime fallback position rather than persisted death positions; if stronger positional fidelity is required, add death-position metadata to `DeathSession` in a later slice.
