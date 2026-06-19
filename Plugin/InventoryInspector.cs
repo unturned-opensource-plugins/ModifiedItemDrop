@@ -16,80 +16,24 @@ namespace FFEmqo.ModifiedItemDrop.Plugin
         {
             var lines = new List<string>
             {
-                $"[Preview] {target.CharacterName} ({target.CSteamID})"
+                $"[Rules Preview] {target.CharacterName} ({target.CSteamID})"
             };
+
+            var inventory = target.CaptureInventory().Where(s => s.Page <= 2).ToList();
+            var clothing = target.CaptureClothing();
 
             try
             {
-                var eq = target.Player?.equipment;
-                var asset = eq?.asset;
-                if (eq != null && asset != null && asset.id != 0)
-                {
-                    var page = eq.equippedPage;
-                    var slotType = UtilityHelper.GetSlotTypeForPage(page);
-                    var chance = dropService.PeekChance(slotType, asset.id, out var source);
-                    lines.Add($"Equipped: [{slotType}] id={asset.id} chance={chance:P1} source={source}");
-                }
+                lines.AddRange(dropService.BuildOutcomeRulePreviewLines(inventory, clothing));
             }
-            catch
+            catch (System.Exception ex)
             {
-                // ignore preview errors
-            }
-
-            var inventory = target.CaptureInventory().Where(s => s.Page <= 2).ToList();
-            if (inventory.Count == 0)
-            {
-                lines.Add("Inventory: (empty)");
-            }
-            else
-            {
-                lines.Add("Inventory items:");
-                foreach (var snapshot in inventory.OrderByDescending(s => s.Page).ThenByDescending(s => s.Index))
-                {
-                    var jar = snapshot.Jar;
-                    if (jar?.item == null || jar.item.id == 0)
-                    {
-                        continue;
-                    }
-
-                    var slotType = UtilityHelper.GetSlotTypeForPage(snapshot.Page);
-                    var chance = dropService.PeekChance(slotType, jar.item.id, out var source);
-                    lines.Add($" - [{slotType}] id={jar.item.id} chance={chance:P1} source={source}");
-                }
-            }
-
-            var clothing = target.CaptureClothing();
-            if (clothing.Count == 0)
-            {
-                lines.Add("Clothing: (none)");
-            }
-            else
-            {
-                lines.Add("Clothing slots:");
-                foreach (var snapshot in clothing)
-                {
-                    var rule = dropService.ResolveClothingRule(snapshot.SlotType);
-                    lines.Add($" - {snapshot.SlotType}: slotChance={rule.SlotDropChance:P1} contentsChance={rule.ContentsDropChance:P1} items={snapshot.Contents?.Count ?? 0}");
-                }
-            }
-
-            var regionOverrides = dropService.RegionOverrides;
-            var itemOverrides = dropService.ItemOverrides;
-            if (regionOverrides.Count > 0 || itemOverrides.Count > 0)
-            {
-                lines.Add("Active overrides:");
-                if (regionOverrides.Count > 0)
-                {
-                    lines.Add($" - Regions: {string.Join(", ", regionOverrides.Select(kvp => $"{kvp.Key}={kvp.Value:P1}"))}");
-                }
-                if (itemOverrides.Count > 0)
-                {
-                    lines.Add($" - Items: {string.Join(", ", itemOverrides.Select(kvp => $"{kvp.Key}={kvp.Value:P1}"))}");
-                }
+                lines.Add("Outcome Rules: preview unavailable. " + ex.Message);
             }
 
             return lines;
         }
+
 
         public static IEnumerable<string> BuildDumpLines(UnturnedPlayer target)
         {

@@ -28,7 +28,8 @@ namespace FFEmqo.ModifiedItemDrop.Plugin
             "modifieditemdrop.rules.preview",
             "modifieditemdrop.inventory.dump",
             "modifieditemdrop.claims.recover",
-            "modifieditemdrop.diagnostics.status"
+            "modifieditemdrop.diagnostics.status",
+            "modifieditemdrop.diagnostics.export"
         };
 
         public void Execute(IRocketPlayer caller, string[] command)
@@ -62,6 +63,9 @@ namespace FFEmqo.ModifiedItemDrop.Plugin
                     break;
                 case MidCommandRouteKind.DiagnosticsStatus:
                     HandleStatus(caller);
+                    break;
+                case MidCommandRouteKind.DiagnosticsExport:
+                    HandleDiagnosticsExport(caller);
                     break;
                 default:
                     SendUsage(caller);
@@ -220,6 +224,40 @@ namespace FFEmqo.ModifiedItemDrop.Plugin
             SendMessage(caller, dropService.IsV2ClaimRecoveryEnabled
                 ? "Claim Recovery: enabled."
                 : "Claim Recovery: disabled by Claim storage degraded mode.", dropService.IsV2ClaimRecoveryEnabled ? Color.green : Color.red);
+        }
+
+        private static void HandleDiagnosticsExport(IRocketPlayer caller)
+        {
+            if (!HasPermission(caller, "modifieditemdrop.diagnostics.export") && !HasPermission(caller, "modifieditemdrop.diagnostics.status"))
+            {
+                SendMessage(caller, "You do not have permission to export ModifiedItemDrop diagnostics.", Color.red);
+                return;
+            }
+
+            var plugin = ModifiedItemDropPlugin.Instance;
+            var loader = plugin?.ConfigurationLoader;
+            var dropService = plugin?.DropService;
+            if (plugin == null || loader == null || dropService == null)
+            {
+                SendMessage(caller, "ModifiedItemDrop is not ready.", Color.red);
+                return;
+            }
+
+            SendMessage(caller, "[ModifiedItemDrop diagnostics export]", Color.cyan);
+            SendMessage(caller, loader.IsDeathProcessingEnabled
+                ? "Outcome Rules: valid; death processing enabled."
+                : $"Outcome Rules: invalid; safe mode active. {loader.SafeModeReason}", Color.cyan);
+            SendMessage(caller, dropService.IsClaimStorageDeathProcessingEnabled
+                ? "Claim storage: healthy for death processing."
+                : $"Claim storage: degraded; death processing disabled. {dropService.ClaimStorageDisabledReason}", Color.cyan);
+
+            var paths = plugin.V2ClaimStoragePaths;
+            if (paths != null)
+            {
+                SendMessage(caller, $"V2 Claim primary: {paths.PrimaryPath}", Color.cyan);
+                SendMessage(caller, $"V2 Claim backup: {paths.BackupPath}", Color.cyan);
+                SendMessage(caller, $"V2 Claim corrupt directory: {paths.CorruptDirectory}", Color.cyan);
+            }
         }
 
         private static UnturnedPlayer ResolveTarget(IRocketPlayer caller, string[] args, string subCommand)

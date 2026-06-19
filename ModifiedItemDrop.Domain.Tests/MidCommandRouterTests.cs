@@ -35,6 +35,7 @@ public sealed class MidCommandRouterTests
     [InlineData("inventory dump", MidCommandRouteKind.InventoryDump)]
     [InlineData("claims recover oldest", MidCommandRouteKind.ClaimsRecover)]
     [InlineData("diagnostics status", MidCommandRouteKind.DiagnosticsStatus)]
+    [InlineData("diagnostics export", MidCommandRouteKind.DiagnosticsExport)]
     public void V2CommandGroupsAreAccepted(string commandLine, MidCommandRouteKind expectedKind)
     {
         var result = MidCommandRouter.Parse(commandLine.Split(' '));

@@ -106,6 +106,45 @@ namespace FFEmqo.ModifiedItemDrop.Drop
             return _configurationLoader.CurrentRuleSet.ResolveClothingRule(slotType);
         }
 
+        public IEnumerable<string> BuildOutcomeRulePreviewLines(
+            IEnumerable<InventoryItemSnapshot> inventorySnapshots,
+            IEnumerable<ClothingItemSnapshot> clothingSnapshots)
+        {
+            if (!_configurationLoader.IsDeathProcessingEnabled)
+            {
+                return new[] { "Outcome Rules: unavailable; safe mode active. " + _configurationLoader.SafeModeReason };
+            }
+
+            var assets = new List<PlayerAsset>();
+            if (inventorySnapshots != null)
+            {
+                assets.AddRange(inventorySnapshots
+                    .Where(snapshot => snapshot?.Jar?.item != null && snapshot.Jar.item.id != 0)
+                    .Select(V2PlayerAssetRuntimeAdapter.ProjectInventoryItem));
+            }
+
+            if (clothingSnapshots != null)
+            {
+                foreach (var snapshot in clothingSnapshots)
+                {
+                    if (snapshot?.Item == null || snapshot.Item.id == 0)
+                    {
+                        continue;
+                    }
+
+                    assets.AddRange(V2PlayerAssetRuntimeAdapter.ProjectClothingItem(snapshot));
+                }
+            }
+
+            if (assets.Count == 0)
+            {
+                return new[] { "Outcome Rules: no Player Assets found." };
+            }
+
+            var plan = new DeathOutcomePlanner().PlanDeathSession(assets, _configurationLoader.CurrentOutcomeRules);
+            return plan.Outcomes.Select(OutcomeRuleExplanationFormatter.FormatPreviewLine).ToList();
+        }
+
         public void SetRegionOverride(SlotType slotType, double chance)
         {
             _chanceResolver.SetRegionOverride(slotType.ToString(), UtilityHelper.ClampChance(chance));

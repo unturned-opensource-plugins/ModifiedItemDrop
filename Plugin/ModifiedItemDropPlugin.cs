@@ -35,6 +35,8 @@ namespace FFEmqo.ModifiedItemDrop.Plugin
 
         public V2ClaimRecoveryService V2ClaimRecoveryService => _v2ClaimRecoveryService;
 
+        public V2ClaimStoragePaths V2ClaimStoragePaths { get; private set; }
+
         protected override void Load()
         {
             if (Instance != null)
@@ -52,7 +54,8 @@ namespace FFEmqo.ModifiedItemDrop.Plugin
             _claimService = new ClaimService(_claimStorage, () => Configuration?.Instance?.ClaimSettings ?? ClaimSettings.CreateDefault());
             _claimService.Initialize();
 
-            _v2DurableClaimStore = new DurableClaimStore(V2ClaimStoragePaths.ForPluginDirectory(Directory));
+            V2ClaimStoragePaths = V2ClaimStoragePaths.ForPluginDirectory(Directory);
+            _v2DurableClaimStore = new DurableClaimStore(V2ClaimStoragePaths);
             _v2DurableClaimCreator = new V2DurableClaimCreator(_v2DurableClaimStore);
             var v2ClaimLoadResult = _v2DurableClaimStore.Load();
             var v2ClaimStorageHealthy = !v2ClaimLoadResult.IsDegraded;
@@ -90,6 +93,7 @@ namespace FFEmqo.ModifiedItemDrop.Plugin
             _v2DurableClaimCreator = null;
             _v2ClaimRecoveryService = null;
             _v2DurableClaimStore = null;
+            V2ClaimStoragePaths = null;
             _claimService = null;
             _claimStorage = null;
 

@@ -62,10 +62,15 @@ namespace FFEmqo.ModifiedItemDrop.Domain
             }
 
             if (parts.Count >= 2 && root.Equals("diagnostics", StringComparison.OrdinalIgnoreCase)
-                && (parts[1].Equals("status", StringComparison.OrdinalIgnoreCase)
-                    || parts[1].Equals("export", StringComparison.OrdinalIgnoreCase)))
+                && parts[1].Equals("status", StringComparison.OrdinalIgnoreCase))
             {
                 return Accepted(MidCommandRouteKind.DiagnosticsStatus, parts.Skip(2));
+            }
+
+            if (parts.Count >= 2 && root.Equals("diagnostics", StringComparison.OrdinalIgnoreCase)
+                && parts[1].Equals("export", StringComparison.OrdinalIgnoreCase))
+            {
+                return Accepted(MidCommandRouteKind.DiagnosticsExport, parts.Skip(2));
             }
 
             return Usage();
