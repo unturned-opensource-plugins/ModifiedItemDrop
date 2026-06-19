@@ -24,13 +24,13 @@ namespace FFEmqo.ModifiedItemDrop.Plugin
 
         public List<string> Permissions => new List<string>
         {
-            "modifieditemdrop.config.reload",
-            "modifieditemdrop.rules.preview",
-            "modifieditemdrop.rules.explain",
-            "modifieditemdrop.inventory.dump",
-            "modifieditemdrop.claims.recover",
-            "modifieditemdrop.diagnostics.status",
-            "modifieditemdrop.diagnostics.export"
+            MidCommandPermissionPolicy.ConfigReload,
+            MidCommandPermissionPolicy.RulesPreview,
+            MidCommandPermissionPolicy.RulesExplain,
+            MidCommandPermissionPolicy.InventoryDump,
+            MidCommandPermissionPolicy.ClaimsRecover,
+            MidCommandPermissionPolicy.DiagnosticsStatus,
+            MidCommandPermissionPolicy.DiagnosticsExport
         };
 
         public void Execute(IRocketPlayer caller, string[] command)
@@ -79,7 +79,7 @@ namespace FFEmqo.ModifiedItemDrop.Plugin
 
         private static void HandleReload(IRocketPlayer caller)
         {
-            if (!HasPermission(caller, "modifieditemdrop.config.reload"))
+            if (!HasPermission(caller, MidCommandPermissionPolicy.ConfigReload))
             {
                 SendMessage(caller, "You do not have permission to reload ModifiedItemDrop.", Color.red);
                 return;
@@ -122,7 +122,7 @@ namespace FFEmqo.ModifiedItemDrop.Plugin
 
         private static void HandlePreview(IRocketPlayer caller, string[] args)
         {
-            if (!HasPermission(caller, "modifieditemdrop.rules.preview"))
+            if (!HasPermission(caller, MidCommandPermissionPolicy.RulesPreview))
             {
                 SendMessage(caller, "You do not have permission to preview drop chances.", Color.red);
                 return;
@@ -150,7 +150,7 @@ namespace FFEmqo.ModifiedItemDrop.Plugin
 
         private static void HandleRulesExplain(IRocketPlayer caller, string[] args)
         {
-            if (!HasPermission(caller, "modifieditemdrop.rules.explain"))
+            if (!HasPermission(caller, MidCommandPermissionPolicy.RulesExplain))
             {
                 SendMessage(caller, "You do not have permission to explain Outcome Rules.", Color.red);
                 return;
@@ -172,7 +172,7 @@ namespace FFEmqo.ModifiedItemDrop.Plugin
 
         private static void HandleDump(IRocketPlayer caller, string[] args)
         {
-            if (!HasPermission(caller, "modifieditemdrop.inventory.dump"))
+            if (!HasPermission(caller, MidCommandPermissionPolicy.InventoryDump))
             {
                 SendMessage(caller, "You do not have permission to dump inventory.", Color.red);
                 return;
@@ -192,7 +192,7 @@ namespace FFEmqo.ModifiedItemDrop.Plugin
 
         private static void HandleClaim(IRocketPlayer caller, string[] args)
         {
-            if (!HasPermission(caller, "modifieditemdrop.claims.recover"))
+            if (!HasPermission(caller, MidCommandPermissionPolicy.ClaimsRecover))
             {
                 SendMessage(caller, "You do not have permission to claim pending items.", Color.red);
                 return;
@@ -224,7 +224,7 @@ namespace FFEmqo.ModifiedItemDrop.Plugin
 
         private static void HandleStatus(IRocketPlayer caller)
         {
-            if (!HasPermission(caller, "modifieditemdrop.diagnostics.status") && !HasPermission(caller, "modifieditemdrop.config.reload"))
+            if (!HasPermission(caller, MidCommandPermissionPolicy.DiagnosticsStatus) && !HasPermission(caller, MidCommandPermissionPolicy.ConfigReload))
             {
                 SendMessage(caller, "You do not have permission to view ModifiedItemDrop status.", Color.red);
                 return;
@@ -254,7 +254,7 @@ namespace FFEmqo.ModifiedItemDrop.Plugin
 
         private static void HandleDiagnosticsExport(IRocketPlayer caller)
         {
-            if (!HasPermission(caller, "modifieditemdrop.diagnostics.export") && !HasPermission(caller, "modifieditemdrop.diagnostics.status"))
+            if (!HasPermission(caller, MidCommandPermissionPolicy.DiagnosticsExport) && !HasPermission(caller, MidCommandPermissionPolicy.DiagnosticsStatus))
             {
                 SendMessage(caller, "You do not have permission to export ModifiedItemDrop diagnostics.", Color.red);
                 return;

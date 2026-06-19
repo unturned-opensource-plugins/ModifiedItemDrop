@@ -86,3 +86,23 @@ rg -n "Rocket|Unturned|Unity|Steamworks|SDG" ModifiedItemDrop.Domain ModifiedIte
 Result: plugin build succeeded with `0 Warning(s), 0 Error(s)`; domain tests `Passed: 60, Failed: 0`; domain boundary scan returned no runtime API matches.
 
 Docs: README command reference now uses v2 grouped commands, and `docs/migration/v1-to-v2-configuration.md` maps each removed v1 flat command to its v2 replacement. The migration guide explicitly states that diagnostics export is non-destructive and that configured `Keep` is distinct from later Durable Claim fallback.
+
+## Slice 4 — Command authorization policy is testable and grouped
+
+Behavior: command permissions are represented by a pure `MidCommandPermissionPolicy`, mapping every accepted v2 route to a grouped permission. The Rocket command handler reuses the policy constants instead of duplicating string literals.
+
+Red:
+
+```bash
+DOTNET_ROOT=/opt/homebrew/opt/dotnet@8/libexec PATH=/opt/homebrew/opt/dotnet@8/bin:$PATH dotnet test ModifiedItemDrop.Domain.Tests/ModifiedItemDrop.Domain.Tests.csproj -v minimal --filter MidCommandPermissionPolicyTests
+# failed: MidCommandPermissionPolicy did not exist
+```
+
+Green command:
+
+```bash
+DOTNET_ROOT=/opt/homebrew/opt/dotnet@8/libexec PATH=/opt/homebrew/opt/dotnet@8/bin:$PATH dotnet test ModifiedItemDrop.Domain.Tests/ModifiedItemDrop.Domain.Tests.csproj -v minimal
+DOTNET_ROOT=/opt/homebrew/opt/dotnet@8/libexec PATH=/opt/homebrew/opt/dotnet@8/bin:$PATH dotnet build ModifiedItemDrop.csproj -v minimal
+```
+
+Result: domain tests `Passed: 67, Failed: 0`; plugin build succeeded with `0 Warning(s), 0 Error(s)`.
