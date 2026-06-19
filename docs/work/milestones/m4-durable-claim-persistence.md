@@ -38,3 +38,17 @@ DOTNET_ROOT=/opt/homebrew/opt/dotnet@8/libexec PATH=/opt/homebrew/opt/dotnet@8/b
 ```
 
 Green result: `Passed: 20, Failed: 0`.
+
+## Slice 3 — Corrupt primary preservation and backup recovery
+
+Behavior: if `claims/v2/claims.json` is corrupt, the corrupt primary file is copied to `claims/v2/corrupt/claims.<timestamp>.json`; if `claims.json.bak` exists, loading recovers from backup and reports `RecoveredFromBackup=true`.
+
+Red: `dotnet test` failed because `DurableClaimLoadResult.RecoveredFromBackup` did not exist and corrupt primary storage was not handled.
+
+Green command:
+
+```bash
+DOTNET_ROOT=/opt/homebrew/opt/dotnet@8/libexec PATH=/opt/homebrew/opt/dotnet@8/bin:$PATH dotnet test ModifiedItemDrop.Domain.Tests/ModifiedItemDrop.Domain.Tests.csproj -v minimal
+```
+
+Green result: `Passed: 21, Failed: 0`.

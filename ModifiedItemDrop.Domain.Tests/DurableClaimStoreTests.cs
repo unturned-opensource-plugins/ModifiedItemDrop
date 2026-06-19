@@ -64,6 +64,34 @@ public sealed class DurableClaimStoreTests
     }
 
 
+
+    [Fact]
+    public void CorruptPrimaryStorageIsPreservedAndBackupIsLoaded()
+    {
+        var pluginDirectory = CreateTempDirectory();
+        try
+        {
+            var paths = V2ClaimStoragePaths.ForPluginDirectory(pluginDirectory);
+            var store = new DurableClaimStore(paths);
+            store.TryCreate(CreateClaim("claim-1"));
+            store.TryCreate(CreateClaim("claim-2"));
+            File.WriteAllText(paths.PrimaryPath, "{ not valid json");
+
+            var loaded = store.Load();
+
+            Assert.True(loaded.RecoveredFromBackup);
+            var claim = Assert.Single(loaded.Claims);
+            Assert.Equal("claim-1", claim.Id);
+            var corruptFile = Assert.Single(Directory.GetFiles(paths.CorruptDirectory, "claims.*.json"));
+            Assert.Equal("{ not valid json", File.ReadAllText(corruptFile));
+        }
+        finally
+        {
+            Directory.Delete(pluginDirectory, recursive: true);
+        }
+    }
+
+
     private static DurableClaimRecord CreateClaim(string id)
     {
         return new DurableClaimRecord(

@@ -66,14 +66,47 @@ namespace FFEmqo.ModifiedItemDrop.Domain
                 return new DurableClaimLoadResult(Array.Empty<DurableClaimRecord>());
             }
 
-            var json = File.ReadAllText(_paths.PrimaryPath);
+            try
+            {
+                return new DurableClaimLoadResult(ReadClaims(_paths.PrimaryPath));
+            }
+            catch (JsonException)
+            {
+                var corruptPath = PreserveCorruptPrimary();
+                if (File.Exists(_paths.BackupPath))
+                {
+                    return new DurableClaimLoadResult(
+                        ReadClaims(_paths.BackupPath),
+                        recoveredFromBackup: true,
+                        preservedCorruptPath: corruptPath);
+                }
+
+                return new DurableClaimLoadResult(
+                    Array.Empty<DurableClaimRecord>(),
+                    recoveredFromBackup: false,
+                    preservedCorruptPath: corruptPath);
+            }
+        }
+
+        private static List<DurableClaimRecord> ReadClaims(string path)
+        {
+            var json = File.ReadAllText(path);
             if (string.IsNullOrWhiteSpace(json))
             {
-                return new DurableClaimLoadResult(Array.Empty<DurableClaimRecord>());
+                return new List<DurableClaimRecord>();
             }
 
-            var claims = JsonConvert.DeserializeObject<List<DurableClaimRecord>>(json) ?? new List<DurableClaimRecord>();
-            return new DurableClaimLoadResult(claims);
+            return JsonConvert.DeserializeObject<List<DurableClaimRecord>>(json) ?? new List<DurableClaimRecord>();
+        }
+
+        private string PreserveCorruptPrimary()
+        {
+            Directory.CreateDirectory(_paths.CorruptDirectory);
+            var corruptPath = Path.Combine(
+                _paths.CorruptDirectory,
+                "claims." + DateTime.UtcNow.ToString("yyyyMMddHHmmssfff") + ".json");
+            File.Copy(_paths.PrimaryPath, corruptPath, overwrite: false);
+            return corruptPath;
         }
 
         private void WriteAll(IEnumerable<DurableClaimRecord> claims)
