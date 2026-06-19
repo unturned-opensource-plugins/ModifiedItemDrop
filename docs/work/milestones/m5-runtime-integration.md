@@ -377,3 +377,19 @@ DOTNET_ROOT=/opt/homebrew/opt/dotnet@8/libexec PATH=/opt/homebrew/opt/dotnet@8/b
 Result: plugin build succeeded with `0 Warning(s), 0 Error(s)`; domain tests `Passed: 45, Failed: 0`.
 
 Review note: `DropService.HandlePlayerRevived` now executes v2 grants after pending restore or, when there are no kept assets, after a lightweight tracked death session created for Grant-trigger rules. Legacy `RestoreManager.GiveRespawnItems` remains in code but is no longer called by the revive path.
+
+## Slice 23 — Runtime death/revive decisions stop invoking legacy processors
+
+Behavior: after quick-slot, clothing, clothing contents, and respawn grants are covered by v2 `OutcomeRules`, the runtime death/revive path no longer calls legacy `InventoryProcessor.ProcessInventory`, `ClothingProcessor.ProcessClothing`, or legacy `DeathSettings.RespawnItems` grant execution. A death session is still tracked when `AfterDeathRespawn` Grant rules exist even if the player had no captured assets at death.
+
+Verification command:
+
+```bash
+DOTNET_ROOT=/opt/homebrew/opt/dotnet@8/libexec PATH=/opt/homebrew/opt/dotnet@8/bin:$PATH dotnet test ModifiedItemDrop.Domain.Tests/ModifiedItemDrop.Domain.Tests.csproj -v minimal
+DOTNET_ROOT=/opt/homebrew/opt/dotnet@8/libexec PATH=/opt/homebrew/opt/dotnet@8/bin:$PATH dotnet build ModifiedItemDrop.csproj -v minimal
+rg -n "\\.ProcessInventory\\(|\\.ProcessClothing\\(|GiveRespawnItems\\(" Drop Plugin -g'*.cs'
+```
+
+Result: plugin build succeeded with `0 Warning(s), 0 Error(s)`; domain tests `Passed: 45, Failed: 0`. The legacy invocation scan reports only the remaining `GiveRespawnItems` method definition, not runtime calls.
+
+Review note: legacy processor classes and preview/override command surfaces still exist and should be removed or replaced during M6/M7 cleanup, but M5 death/revive execution no longer depends on v1 chance/death settings.

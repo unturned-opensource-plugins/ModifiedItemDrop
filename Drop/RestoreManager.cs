@@ -59,8 +59,6 @@ namespace FFEmqo.ModifiedItemDrop.Drop
             _inventoryProcessor.RestoreInventory(player, pending);
             _clothingProcessor.RestoreClothing(player, pending);
 
-            GiveRespawnItems(player);
-
             if (pending.IsEmpty)
             {
                 return;

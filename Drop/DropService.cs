@@ -169,17 +169,12 @@ namespace FFEmqo.ModifiedItemDrop.Drop
 
             try
             {
-                // Capture local references to avoid stale processors during concurrent RefreshRules
-                var invProc = _inventoryProcessor;
-                var clothProc = _clothingProcessor;
-                var restMgr = _restoreManager;
-
                 ForceUnequipCurrentItem(player);
                 var quickSlotSnapshots = player.CaptureInventory()
                     .Where(snapshot => snapshot.Page <= 2)
                     .ToList();
                 var clothingSnapshots = player.CaptureClothing();
-                if (quickSlotSnapshots.Count > 0 || clothingSnapshots.Count > 0)
+                if (quickSlotSnapshots.Count > 0 || clothingSnapshots.Count > 0 || HasV2RespawnGrantRules())
                 {
                     var deathResult = _v2DeathProcessingAdapter.ProcessDeath(
                         Guid.NewGuid().ToString("N"),
@@ -211,9 +206,6 @@ namespace FFEmqo.ModifiedItemDrop.Drop
                         }
                     }
                 }
-
-                invProc.ProcessInventory(player, pending, deathPosition);
-                clothProc.ProcessClothing(player, pending, deathPosition);
 
                 lock (_pendingRestoresLock)
                 {
