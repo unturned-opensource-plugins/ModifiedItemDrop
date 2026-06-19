@@ -27,3 +27,19 @@ DOTNET_ROOT=/opt/homebrew/opt/dotnet@8/libexec PATH=/opt/homebrew/opt/dotnet@8/b
 Green result: `Passed: 3, Failed: 0`.
 
 Review note: the roll provider is injected through the public domain planner API; no Rocket/Unturned runtime dependency was introduced.
+
+## Slice 2 — Equal-priority matching rules are invalid
+
+Behavior: if multiple matching rules share the same highest priority for a Player Asset, the rules are invalid configuration rather than ordered implicitly by collection order.
+
+Red: `dotnet test` failed because `InvalidOutcomeRuleConfigurationException` did not exist.
+
+Green command:
+
+```bash
+DOTNET_ROOT=/opt/homebrew/opt/dotnet@8/libexec PATH=/opt/homebrew/opt/dotnet@8/bin:$PATH dotnet test ModifiedItemDrop.Domain.Tests/ModifiedItemDrop.Domain.Tests.csproj -v minimal
+```
+
+Green result: `Passed: 4, Failed: 0`.
+
+Review note: conflict detection happens before probabilistic sampling for a priority group, so ambiguous configuration cannot be hidden behind chance behavior.

@@ -48,17 +48,29 @@ namespace FFEmqo.ModifiedItemDrop.Domain
 
         private PlayerAssetOutcome PlanAsset(PlayerAsset asset, IEnumerable<OutcomeRule> rules)
         {
-            var selectedRule = rules
+            var matchingPriorityGroups = rules
                 .Where(rule => rule.Target.Matches(asset))
-                .OrderByDescending(rule => rule.Priority)
-                .FirstOrDefault(RuleOutcomeOccurs);
+                .GroupBy(rule => rule.Priority)
+                .OrderByDescending(group => group.Key);
 
-            if (selectedRule == null)
+            foreach (var priorityGroup in matchingPriorityGroups)
             {
-                throw new InvalidOperationException("No outcome rule matched the player asset.");
+                var matchingRules = priorityGroup.ToList();
+                if (matchingRules.Count > 1)
+                {
+                    throw new InvalidOutcomeRuleConfigurationException(
+                        "Multiple outcome rules matched asset '" + asset.Id + "' at priority " + priorityGroup.Key + ": " +
+                        string.Join(", ", matchingRules.Select(rule => rule.Name)) + ".");
+                }
+
+                var selectedRule = matchingRules[0];
+                if (RuleOutcomeOccurs(selectedRule))
+                {
+                    return new PlayerAssetOutcome(asset, selectedRule.OutcomeKind, selectedRule);
+                }
             }
 
-            return new PlayerAssetOutcome(asset, selectedRule.OutcomeKind, selectedRule);
+            throw new InvalidOperationException("No outcome rule matched the player asset.");
         }
 
         private bool RuleOutcomeOccurs(OutcomeRule rule)

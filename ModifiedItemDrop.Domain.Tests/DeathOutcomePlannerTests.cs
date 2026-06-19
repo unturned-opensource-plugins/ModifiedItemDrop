@@ -46,6 +46,26 @@ public sealed class DeathOutcomePlannerTests
         Assert.Equal("primary weapon sometimes drops", outcome.Rule.Name);
     }
 
+
+    [Fact]
+    public void EqualPriorityMatchingRulesAreInvalidConfiguration()
+    {
+        var asset = new PlayerAsset("asset-1", PlayerAssetSlot.PrimaryWeapon, itemId: 363);
+        var rules = new[]
+        {
+            OutcomeRule.Drop("drop primary", 100, OutcomeTarget.ForSlot(PlayerAssetSlot.PrimaryWeapon), chance: 1.0),
+            OutcomeRule.Keep("keep primary", 100, OutcomeTarget.ForSlot(PlayerAssetSlot.PrimaryWeapon), chance: 1.0),
+            OutcomeRule.Keep("fallback keep", 0, OutcomeTarget.Any(), chance: 1.0)
+        };
+
+        var exception = Assert.Throws<InvalidOutcomeRuleConfigurationException>(
+            () => new DeathOutcomePlanner().Plan(asset, rules));
+
+        Assert.Contains("priority 100", exception.Message);
+        Assert.Contains("drop primary", exception.Message);
+        Assert.Contains("keep primary", exception.Message);
+    }
+
 }
 
 
