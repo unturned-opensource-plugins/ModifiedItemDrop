@@ -103,9 +103,19 @@ namespace FFEmqo.ModifiedItemDrop.Domain
                 case "Keep":
                     return OutcomeRule.Keep(name, priority, target, chance);
                 case "Delete":
+                    EnsureNoChanceAttribute(outcome, outcomeKind);
                     return OutcomeRule.Delete(name, priority, target);
                 default:
                     throw new InvalidOutcomeRuleConfigurationException("Unsupported Outcome kind '" + outcomeKind + "'.");
+            }
+        }
+
+        private static void EnsureNoChanceAttribute(XElement outcomeElement, string outcomeKind)
+        {
+            if (outcomeElement.Attribute("chance") != null)
+            {
+                throw new InvalidOutcomeRuleConfigurationException(
+                    "Outcome kind '" + outcomeKind + "' must not include chance; chance is only valid for probabilistic Drop or Keep outcomes.");
             }
         }
 

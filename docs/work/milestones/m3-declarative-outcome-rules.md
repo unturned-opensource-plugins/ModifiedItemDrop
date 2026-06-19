@@ -247,3 +247,19 @@ DOTNET_ROOT=/opt/homebrew/opt/dotnet@8/libexec PATH=/opt/homebrew/opt/dotnet@8/b
 Green result: `Passed: 17, Failed: 0`.
 
 Review note: this implements the ADR 0003 design rule that a rule has either `Target` or `Trigger` depending on whether it applies to a Player Asset or event.
+
+## Slice 16 — Chance attribute validation
+
+Behavior: `chance` appears only on probabilistic outcomes. `Delete` with `chance` is invalid configuration.
+
+Red: `dotnet test` failed because `Outcome kind="Delete" chance="1.0"` was accepted.
+
+Green command:
+
+```bash
+DOTNET_ROOT=/opt/homebrew/opt/dotnet@8/libexec PATH=/opt/homebrew/opt/dotnet@8/bin:$PATH dotnet test ModifiedItemDrop.Domain.Tests/ModifiedItemDrop.Domain.Tests.csproj -v minimal
+```
+
+Green result: `Passed: 18, Failed: 0`.
+
+Review note: the current parser treats Drop and Keep as probabilistic outcomes; Delete is deterministic and Grant is event-triggered.

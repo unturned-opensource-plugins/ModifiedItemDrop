@@ -149,4 +149,28 @@ public sealed class OutcomeRuleXmlParserTests
         Assert.Contains("either Target or Trigger", exception.Message);
     }
 
+
+    [Fact]
+    public void DeleteOutcomeWithChanceAttributeIsInvalidConfiguration()
+    {
+        var xml = """
+            <OutcomeRules>
+              <Rule name="Delete banned item" priority="2000">
+                <Target kind="Item" itemId="95" />
+                <Outcome kind="Delete" chance="1.0" />
+              </Rule>
+              <Rule name="Default keep" priority="0">
+                <Target kind="Any" />
+                <Outcome kind="Keep" />
+              </Rule>
+            </OutcomeRules>
+            """;
+
+        var exception = Assert.Throws<InvalidOutcomeRuleConfigurationException>(
+            () => OutcomeRuleXmlParser.Parse(xml));
+
+        Assert.Contains("chance", exception.Message);
+        Assert.Contains("probabilistic", exception.Message);
+    }
+
 }
