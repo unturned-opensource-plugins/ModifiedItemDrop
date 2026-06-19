@@ -52,3 +52,19 @@ DOTNET_ROOT=/opt/homebrew/opt/dotnet@8/libexec PATH=/opt/homebrew/opt/dotnet@8/b
 ```
 
 Green result: `Passed: 21, Failed: 0`.
+
+## Slice 4 — Durable Claim creation failure fallback
+
+Behavior: when Durable Claim creation fails and immediate restoration is unavailable, every unresolved kept Player Asset is routed to Drop fallback. Clothing Content is represented as a first-class Player Asset and appears exactly once in fallback decisions.
+
+Red: `dotnet test` failed because `DurableClaimFallbackPlanner` and `DurableClaimFallbackKind` did not exist.
+
+Green command:
+
+```bash
+DOTNET_ROOT=/opt/homebrew/opt/dotnet@8/libexec PATH=/opt/homebrew/opt/dotnet@8/bin:$PATH dotnet test ModifiedItemDrop.Domain.Tests/ModifiedItemDrop.Domain.Tests.csproj -v minimal
+```
+
+Green result: `Passed: 22, Failed: 0`.
+
+Review note: this is the pure domain fallback decision. Runtime execution of Drop fallback remains part of the death/disconnect/unload integration milestone.
