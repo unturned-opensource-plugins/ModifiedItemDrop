@@ -75,16 +75,27 @@ namespace FFEmqo.ModifiedItemDrop.Domain
                 }
 
                 var selectedRule = matchingRules[0];
-                if (RuleOutcomeOccurs(selectedRule))
+                var roll = SampleRollFor(selectedRule);
+                if (RuleOutcomeOccurs(selectedRule, roll))
                 {
-                    return new PlayerAssetOutcome(asset, selectedRule.OutcomeKind, selectedRule);
+                    return new PlayerAssetOutcome(asset, selectedRule.OutcomeKind, selectedRule, roll);
                 }
             }
 
             throw new InvalidOperationException("No outcome rule matched the player asset.");
         }
 
-        private bool RuleOutcomeOccurs(OutcomeRule rule)
+        private double? SampleRollFor(OutcomeRule rule)
+        {
+            if (rule.Chance <= 0 || rule.Chance >= 1)
+            {
+                return null;
+            }
+
+            return _rollProvider.NextRoll();
+        }
+
+        private static bool RuleOutcomeOccurs(OutcomeRule rule, double? roll)
         {
             if (rule.Chance <= 0)
             {
@@ -96,7 +107,7 @@ namespace FFEmqo.ModifiedItemDrop.Domain
                 return true;
             }
 
-            return _rollProvider.NextRoll() < rule.Chance;
+            return roll < rule.Chance;
         }
     }
 }

@@ -139,3 +139,19 @@ DOTNET_ROOT=/opt/homebrew/opt/dotnet@8/libexec PATH=/opt/homebrew/opt/dotnet@8/b
 Green result: `Passed: 10, Failed: 0`.
 
 Review note: this is parser-level rejection. Plugin-level safe mode wiring remains a later milestone.
+
+## Slice 9 — Sampled roll retained for explanations
+
+Behavior: when a probabilistic rule is sampled, the resulting Player Asset Outcome retains the sampled roll so `/mid rules explain` can later report both configured chance and sampled roll.
+
+Red: `dotnet test` failed because `PlayerAssetOutcome.SampledRoll` did not exist.
+
+Green command:
+
+```bash
+DOTNET_ROOT=/opt/homebrew/opt/dotnet@8/libexec PATH=/opt/homebrew/opt/dotnet@8/bin:$PATH dotnet test ModifiedItemDrop.Domain.Tests/ModifiedItemDrop.Domain.Tests.csproj -v minimal
+```
+
+Green result: `Passed: 11, Failed: 0`.
+
+Review note: deterministic roll inspection stays in the pure domain output; command formatting remains a later adapter concern.

@@ -108,6 +108,23 @@ public sealed class DeathOutcomePlannerTests
         Assert.Equal("keep hands item", outcome.Rule.Name);
     }
 
+
+    [Fact]
+    public void ProbabilisticOutcomeRecordsSampledRollForExplanation()
+    {
+        var asset = new PlayerAsset("asset-1", PlayerAssetSlot.PrimaryWeapon, itemId: 363);
+        var rules = new[]
+        {
+            OutcomeRule.Drop("primary weapon sometimes drops", 100, OutcomeTarget.ForSlot(PlayerAssetSlot.PrimaryWeapon), chance: 0.50),
+            OutcomeRule.Keep("fallback keep", 0, OutcomeTarget.Any(), chance: 1.0)
+        };
+
+        var outcome = new DeathOutcomePlanner(new FixedRollProvider(0.49)).Plan(asset, rules);
+
+        Assert.Equal(0.49, outcome.SampledRoll);
+        Assert.Equal(0.50, outcome.Rule.Chance);
+    }
+
 }
 
 
