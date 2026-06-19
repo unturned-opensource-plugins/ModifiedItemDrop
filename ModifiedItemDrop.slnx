@@ -1,3 +1,5 @@
 <Solution>
   <Project Path="ModifiedItemDrop.csproj" />
+  <Project Path="ModifiedItemDrop.Domain/ModifiedItemDrop.Domain.csproj" />
+  <Project Path="ModifiedItemDrop.Domain.Tests/ModifiedItemDrop.Domain.Tests.csproj" />
 </Solution>
