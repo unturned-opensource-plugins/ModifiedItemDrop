@@ -201,3 +201,17 @@ DOTNET_ROOT=/opt/homebrew/opt/dotnet@8/libexec PATH=/opt/homebrew/opt/dotnet@8/b
 Green result: `Passed: 14, Failed: 0`.
 
 Review note: this closes the sampled-roll explanation gap for both matching and missed probabilistic rules without adding command-layer formatting yet.
+
+## Slice 13 — Probability boundary: roll above chance
+
+Behavior: when `roll > chance`, the probabilistic rule does not occur, planning continues to fallback, and the missed rule evaluation records the sampled roll.
+
+Result: this test passed immediately after Slice 12 because the rule evaluation trace already covered missed probabilistic rules. It is retained as explicit PRD coverage for roll-above behavior.
+
+Verification command:
+
+```bash
+DOTNET_ROOT=/opt/homebrew/opt/dotnet@8/libexec PATH=/opt/homebrew/opt/dotnet@8/bin:$PATH dotnet test ModifiedItemDrop.Domain.Tests/ModifiedItemDrop.Domain.Tests.csproj -v minimal
+```
+
+Result: `Passed: 15, Failed: 0`.
