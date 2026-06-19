@@ -82,3 +82,17 @@ DOTNET_ROOT=/opt/homebrew/opt/dotnet@8/libexec PATH=/opt/homebrew/opt/dotnet@8/b
 ```
 
 Result: `Passed: 23, Failed: 0`.
+
+## Slice 6 — Durable write failure does not report Claim creation
+
+Behavior: if the v2 storage directory cannot be created/written, `TryCreate` returns `Created=false` with an error and does not create `claims/v2/claims.json`.
+
+Result: this test passed with the current storage implementation because `TryCreate` reports exceptions as failure instead of committing memory-only state. It is retained as explicit M4 coverage for “Claim creation succeeds only after durable write.”
+
+Verification command:
+
+```bash
+DOTNET_ROOT=/opt/homebrew/opt/dotnet@8/libexec PATH=/opt/homebrew/opt/dotnet@8/bin:$PATH dotnet test ModifiedItemDrop.Domain.Tests/ModifiedItemDrop.Domain.Tests.csproj -v minimal
+```
+
+Result: `Passed: 24, Failed: 0`.

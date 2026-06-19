@@ -92,6 +92,31 @@ public sealed class DurableClaimStoreTests
     }
 
 
+
+    [Fact]
+    public void CreateClaimReturnsFailureWhenDurableWriteCannotComplete()
+    {
+        var pluginDirectory = CreateTempDirectory();
+        try
+        {
+            var paths = V2ClaimStoragePaths.ForPluginDirectory(pluginDirectory);
+            Directory.CreateDirectory(Path.Combine(pluginDirectory, "claims"));
+            File.WriteAllText(paths.RootDirectory, "not a directory");
+            var store = new DurableClaimStore(paths);
+
+            var result = store.TryCreate(CreateClaim("claim-1"));
+
+            Assert.False(result.Created);
+            Assert.False(string.IsNullOrWhiteSpace(result.ErrorMessage));
+            Assert.False(File.Exists(paths.PrimaryPath));
+        }
+        finally
+        {
+            Directory.Delete(pluginDirectory, recursive: true);
+        }
+    }
+
+
     private static DurableClaimRecord CreateClaim(string id)
     {
         return new DurableClaimRecord(
