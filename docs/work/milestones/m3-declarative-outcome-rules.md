@@ -123,3 +123,19 @@ DOTNET_ROOT=/opt/homebrew/opt/dotnet@8/libexec PATH=/opt/homebrew/opt/dotnet@8/b
 Green result: `Passed: 9, Failed: 0`.
 
 Review note: the parsed rule reuses the canonical `PlayerAsset.ClothingContent` model from M2 rather than creating a side collection.
+
+## Slice 8 — V1 configuration shape rejection
+
+Behavior: a v1-shaped configuration is rejected with explicit v1/v2/migration guidance instead of being parsed, guessed, or failing with an opaque root mismatch.
+
+Red: `dotnet test` failed because the exception message was only `Expected root element OutcomeRules.` and did not mention v1/v2/migration.
+
+Green command:
+
+```bash
+DOTNET_ROOT=/opt/homebrew/opt/dotnet@8/libexec PATH=/opt/homebrew/opt/dotnet@8/bin:$PATH dotnet test ModifiedItemDrop.Domain.Tests/ModifiedItemDrop.Domain.Tests.csproj -v minimal
+```
+
+Green result: `Passed: 10, Failed: 0`.
+
+Review note: this is parser-level rejection. Plugin-level safe mode wiring remains a later milestone.

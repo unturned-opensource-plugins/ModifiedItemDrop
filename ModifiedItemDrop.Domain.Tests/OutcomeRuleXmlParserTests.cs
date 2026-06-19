@@ -82,4 +82,27 @@ public sealed class OutcomeRuleXmlParserTests
         Assert.Equal("Keep backpack content", outcome.Rule.Name);
     }
 
+
+    [Fact]
+    public void V1ConfigurationShapeIsRejectedWithMigrationGuidance()
+    {
+        var xml = """
+            <ModifiedItemDropConfiguration>
+              <Death>
+                <DropChance>0.5</DropChance>
+              </Death>
+              <DeleteOnDeathItems>
+                <ushort>95</ushort>
+              </DeleteOnDeathItems>
+            </ModifiedItemDropConfiguration>
+            """;
+
+        var exception = Assert.Throws<InvalidOutcomeRuleConfigurationException>(
+            () => OutcomeRuleXmlParser.Parse(xml));
+
+        Assert.Contains("v1", exception.Message);
+        Assert.Contains("v2", exception.Message);
+        Assert.Contains("migration", exception.Message);
+    }
+
 }

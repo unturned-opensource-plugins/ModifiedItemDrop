@@ -17,12 +17,35 @@ namespace FFEmqo.ModifiedItemDrop.Domain
 
             var document = XDocument.Parse(xml);
             var root = document.Root;
-            if (root == null || root.Name.LocalName != "OutcomeRules")
+            if (root == null)
             {
                 throw new InvalidOutcomeRuleConfigurationException("Expected root element OutcomeRules.");
             }
 
+            if (root.Name.LocalName != "OutcomeRules")
+            {
+                if (LooksLikeV1Configuration(root))
+                {
+                    throw new InvalidOutcomeRuleConfigurationException(
+                        "Detected v1 ModifiedItemDrop configuration. v2 requires nested OutcomeRules XML; use the v1-to-v2 migration guide before enabling death processing.");
+                }
+
+                throw new InvalidOutcomeRuleConfigurationException("Expected root element OutcomeRules.");
+            }
+
             return root.Elements("Rule").Select(ParseRule).ToList().AsReadOnly();
+        }
+
+        private static bool LooksLikeV1Configuration(XElement root)
+        {
+            if (root.Name.LocalName == "ModifiedItemDropConfiguration")
+            {
+                return true;
+            }
+
+            return root.Descendants("DeleteOnDeathItems").Any()
+                || root.Descendants("DropChance").Any()
+                || root.Descendants("RuleSet").Any();
         }
 
         private static OutcomeRule ParseRule(XElement ruleElement)
