@@ -83,8 +83,6 @@ jobs:
         Copy-Item "ModifiedItemDrop.configuration.xml" -Destination "release\" -Force
         Copy-Item "README.md" -Destination "release\" -Force
         Copy-Item "LICENSE" -Destination "release\" -Force
-        New-Item -ItemType Directory -Force -Path "release\docs\migration" | Out-Null
-        Copy-Item "docs\migration\v1-to-v2-configuration.md" -Destination "release\docs\migration\" -Force
 
     - name: Create release archive
       shell: pwsh
