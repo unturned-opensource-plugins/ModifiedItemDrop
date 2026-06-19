@@ -64,6 +64,8 @@ namespace FFEmqo.ModifiedItemDrop.Domain
                 .GroupBy(rule => rule.Priority)
                 .OrderByDescending(group => group.Key);
 
+            var evaluations = new List<OutcomeRuleEvaluation>();
+
             foreach (var priorityGroup in matchingPriorityGroups)
             {
                 var matchingRules = priorityGroup.ToList();
@@ -76,9 +78,11 @@ namespace FFEmqo.ModifiedItemDrop.Domain
 
                 var selectedRule = matchingRules[0];
                 var roll = SampleRollFor(selectedRule);
-                if (RuleOutcomeOccurs(selectedRule, roll))
+                var outcomeOccurred = RuleOutcomeOccurs(selectedRule, roll);
+                evaluations.Add(new OutcomeRuleEvaluation(selectedRule, roll, outcomeOccurred));
+                if (outcomeOccurred)
                 {
-                    return new PlayerAssetOutcome(asset, selectedRule.OutcomeKind, selectedRule, roll);
+                    return new PlayerAssetOutcome(asset, selectedRule.OutcomeKind, selectedRule, roll, evaluations);
                 }
             }
 

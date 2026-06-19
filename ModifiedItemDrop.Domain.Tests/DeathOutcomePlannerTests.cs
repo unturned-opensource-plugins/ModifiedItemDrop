@@ -143,6 +143,26 @@ public sealed class DeathOutcomePlannerTests
         Assert.Null(outcome.SampledRoll);
     }
 
+
+    [Fact]
+    public void RollEqualToChanceFallsBackAndRecordsMissedRuleEvaluation()
+    {
+        var asset = new PlayerAsset("asset-1", PlayerAssetSlot.PrimaryWeapon, itemId: 363);
+        var rules = new[]
+        {
+            OutcomeRule.Drop("primary weapon sometimes drops", 100, OutcomeTarget.ForSlot(PlayerAssetSlot.PrimaryWeapon), chance: 0.50),
+            OutcomeRule.Keep("fallback keep", 0, OutcomeTarget.Any(), chance: 1.0)
+        };
+
+        var outcome = new DeathOutcomePlanner(new FixedRollProvider(0.50)).Plan(asset, rules);
+
+        Assert.Equal(PlayerAssetOutcomeKind.Keep, outcome.Kind);
+        Assert.Equal("fallback keep", outcome.Rule.Name);
+        var missedEvaluation = Assert.Single(outcome.RuleEvaluations, evaluation => evaluation.Rule.Name == "primary weapon sometimes drops");
+        Assert.Equal(0.50, missedEvaluation.SampledRoll);
+        Assert.False(missedEvaluation.OutcomeOccurred);
+    }
+
 }
 
 

@@ -185,3 +185,19 @@ DOTNET_ROOT=/opt/homebrew/opt/dotnet@8/libexec PATH=/opt/homebrew/opt/dotnet@8/b
 Green result: `Passed: 13, Failed: 0`.
 
 Review note: Grant rules are trigger-based and do not participate in death-processed Player Asset target matching. Runtime gating to a tracked Death Session remains a later integration milestone.
+
+## Slice 12 — Rule evaluation trace for probability explanations
+
+Behavior: when `roll == chance`, v2 uses `roll < chance`, so the probabilistic rule does not occur and planning continues to fallback. The resulting outcome retains a rule evaluation trace with the missed rule, sampled roll, and `OutcomeOccurred=false` so rule explanation can report why the fallback was selected.
+
+Red: `dotnet test` failed because `PlayerAssetOutcome.RuleEvaluations` did not exist.
+
+Green command:
+
+```bash
+DOTNET_ROOT=/opt/homebrew/opt/dotnet@8/libexec PATH=/opt/homebrew/opt/dotnet@8/bin:$PATH dotnet test ModifiedItemDrop.Domain.Tests/ModifiedItemDrop.Domain.Tests.csproj -v minimal
+```
+
+Green result: `Passed: 14, Failed: 0`.
+
+Review note: this closes the sampled-roll explanation gap for both matching and missed probabilistic rules without adding command-layer formatting yet.
