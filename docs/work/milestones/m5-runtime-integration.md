@@ -163,3 +163,20 @@ DOTNET_ROOT=/opt/homebrew/opt/dotnet@8/libexec PATH=/opt/homebrew/opt/dotnet@8/b
 Result: plugin build succeeded with `0 Warning(s), 0 Error(s)`; domain tests `Passed: 34, Failed: 0`.
 
 Review note: the runtime `V2ClaimRecoveryService` restores v2 Durable Claim assets as normal inventory items and prunes only successfully placed assets. The existing v1 Claim service remains as a fallback for old claims until v2 commands and migration are finalized.
+
+## Slice 11 — Death Session claims preserve Player Asset item data
+
+Behavior: kept Player Assets finalized into a Durable Claim must preserve item id, amount, quality, and serialized state. Claim persistence must not synthesize default amount/quality/state because that can duplicate, weaken, or corrupt assets recovered after disconnect/unload.
+
+Red: `dotnet test` failed because `PlayerAsset` did not expose `amount`, `quality`, or `state` data.
+
+Green command:
+
+```bash
+DOTNET_ROOT=/opt/homebrew/opt/dotnet@8/libexec PATH=/opt/homebrew/opt/dotnet@8/bin:$PATH dotnet test ModifiedItemDrop.Domain.Tests/ModifiedItemDrop.Domain.Tests.csproj -v minimal
+DOTNET_ROOT=/opt/homebrew/opt/dotnet@8/libexec PATH=/opt/homebrew/opt/dotnet@8/bin:$PATH dotnet build ModifiedItemDrop.csproj -v minimal
+```
+
+Result: plugin build succeeded with `0 Warning(s), 0 Error(s)`; domain tests `Passed: 35, Failed: 0`.
+
+Review note: this closes a Player Asset Conservation gap before deeper runtime wiring: the canonical domain object now carries the minimum item data required for Durable Claim recovery.

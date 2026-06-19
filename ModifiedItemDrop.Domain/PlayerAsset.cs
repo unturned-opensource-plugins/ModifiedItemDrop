@@ -5,7 +5,12 @@ namespace FFEmqo.ModifiedItemDrop.Domain
     public sealed class PlayerAsset
     {
         public PlayerAsset(string id, PlayerAssetSlot slot, ushort itemId)
-            : this(id, slot, itemId, isClothingContent: false, sourceClothingSlot: null, parentAssetId: null)
+            : this(id, slot, itemId, amount: 1, quality: 100, state: null)
+        {
+        }
+
+        public PlayerAsset(string id, PlayerAssetSlot slot, ushort itemId, byte amount, byte quality, byte[]? state)
+            : this(id, slot, itemId, amount, quality, state, isClothingContent: false, sourceClothingSlot: null, parentAssetId: null)
         {
         }
 
@@ -13,6 +18,9 @@ namespace FFEmqo.ModifiedItemDrop.Domain
             string id,
             PlayerAssetSlot slot,
             ushort itemId,
+            byte amount,
+            byte quality,
+            byte[]? state,
             bool isClothingContent,
             PlayerAssetSlot? sourceClothingSlot,
             string? parentAssetId)
@@ -30,6 +38,9 @@ namespace FFEmqo.ModifiedItemDrop.Domain
             Id = id;
             Slot = slot;
             ItemId = itemId;
+            Amount = amount;
+            Quality = quality;
+            State = state != null ? (byte[])state.Clone() : Array.Empty<byte>();
             IsClothingContent = isClothingContent;
             SourceClothingSlot = sourceClothingSlot;
             ParentAssetId = parentAssetId;
@@ -40,6 +51,12 @@ namespace FFEmqo.ModifiedItemDrop.Domain
         public PlayerAssetSlot Slot { get; }
 
         public ushort ItemId { get; }
+
+        public byte Amount { get; }
+
+        public byte Quality { get; }
+
+        public byte[] State { get; }
 
         public bool IsClothingContent { get; }
 
@@ -53,10 +70,25 @@ namespace FFEmqo.ModifiedItemDrop.Domain
             string parentAssetId,
             ushort itemId)
         {
+            return ClothingContent(id, sourceClothingSlot, parentAssetId, itemId, amount: 1, quality: 100, state: null);
+        }
+
+        public static PlayerAsset ClothingContent(
+            string id,
+            PlayerAssetSlot sourceClothingSlot,
+            string parentAssetId,
+            ushort itemId,
+            byte amount,
+            byte quality,
+            byte[]? state)
+        {
             return new PlayerAsset(
                 id,
                 sourceClothingSlot,
                 itemId,
+                amount,
+                quality,
+                state,
                 isClothingContent: true,
                 sourceClothingSlot: sourceClothingSlot,
                 parentAssetId: parentAssetId);

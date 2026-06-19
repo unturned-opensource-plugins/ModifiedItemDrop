@@ -119,6 +119,35 @@ public sealed class DeathSessionFinalizerTests
     }
 
 
+    [Fact]
+    public void DurableClaimCreatedFromDeathSessionPreservesPlayerAssetItemData()
+    {
+        var asset = new PlayerAsset(
+            "primary",
+            PlayerAssetSlot.PrimaryWeapon,
+            itemId: 363,
+            amount: 2,
+            quality: 75,
+            state: new byte[] { 9, 8, 7 });
+        var keptOutcome = new PlayerAssetOutcome(
+            asset,
+            PlayerAssetOutcomeKind.Keep,
+            OutcomeRule.Keep("keep primary", 100, OutcomeTarget.Any(), chance: 1.0));
+        var session = new DeathSession("session-5", steamId: 76561198000000001UL, outcomes: new[] { keptOutcome });
+        var claimCreator = new RecordingDurableClaimCreator(DurableClaimCreateResult.Success());
+        var finalizer = new DeathSessionFinalizer(claimCreator);
+
+        finalizer.FinalizeDisconnect(session);
+
+        var claimAsset = Assert.Single(Assert.Single(claimCreator.CreatedClaims).Assets);
+        Assert.Equal("primary", claimAsset.AssetId);
+        Assert.Equal(363, claimAsset.ItemId);
+        Assert.Equal(2, claimAsset.Amount);
+        Assert.Equal(75, claimAsset.Quality);
+        Assert.Equal(new byte[] { 9, 8, 7 }, claimAsset.State);
+    }
+
+
     private sealed class RecordingDurableClaimCreator : IDurableClaimCreator
     {
         private readonly DurableClaimCreateResult _result;

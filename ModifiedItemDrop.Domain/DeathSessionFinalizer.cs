@@ -73,9 +73,9 @@ namespace FFEmqo.ModifiedItemDrop.Domain
                 keptOutcomes.Select(outcome => new DurableClaimAsset(
                     outcome.Asset.Id,
                     outcome.Asset.ItemId,
-                    amount: 1,
-                    quality: 100,
-                    state: Array.Empty<byte>())));
+                    outcome.Asset.Amount,
+                    outcome.Asset.Quality,
+                    outcome.Asset.State)));
         }
     }
 }
