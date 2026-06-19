@@ -118,3 +118,16 @@ DOTNET_ROOT=/opt/homebrew/opt/dotnet@8/libexec PATH=/opt/homebrew/opt/dotnet@8/b
 Green result: `Passed: 33, Failed: 0`.
 
 Review note: adapter code must translate Rocket/Unturned inventory snapshots into Player Assets, run outcome planning, and create Death Sessions from this factory.
+
+## Slice 8 — Plugin initializes v2 Durable Claim adapter
+
+Behavior: plugin load creates the v2 Durable Claim store at the versioned storage layout and exposes a `V2DurableClaimCreator` adapter for runtime Death Session finalization. The legacy v1 Claim service remains present until later slices replace old pending restore paths.
+
+Verification command:
+
+```bash
+DOTNET_ROOT=/opt/homebrew/opt/dotnet@8/libexec PATH=/opt/homebrew/opt/dotnet@8/bin:$PATH dotnet build ModifiedItemDrop.csproj -v minimal
+DOTNET_ROOT=/opt/homebrew/opt/dotnet@8/libexec PATH=/opt/homebrew/opt/dotnet@8/bin:$PATH dotnet test ModifiedItemDrop.Domain.Tests/ModifiedItemDrop.Domain.Tests.csproj -v minimal
+```
+
+Result: plugin build succeeded with `0 Warning(s), 0 Error(s)`; domain tests `Passed: 33, Failed: 0`.

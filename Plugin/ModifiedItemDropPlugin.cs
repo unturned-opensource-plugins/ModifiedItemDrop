@@ -4,6 +4,7 @@ using System.Reflection;
 using FFEmqo.ModifiedItemDrop.Claim;
 using FFEmqo.ModifiedItemDrop.Configuration;
 using FFEmqo.ModifiedItemDrop.Drop;
+using FFEmqo.ModifiedItemDrop.Domain;
 using FFEmqo.ModifiedItemDrop.Utilities;
 using Rocket.Core.Logging;
 using Rocket.Core.Plugins;
@@ -18,6 +19,8 @@ namespace FFEmqo.ModifiedItemDrop.Plugin
         private DateTime _lastAutoReload = DateTime.MinValue;
         private ClaimStorage _claimStorage;
         private ClaimService _claimService;
+        private DurableClaimStore _v2DurableClaimStore;
+        private V2DurableClaimCreator _v2DurableClaimCreator;
 
         public static ModifiedItemDropPlugin Instance { get; private set; }
 
@@ -26,6 +29,8 @@ namespace FFEmqo.ModifiedItemDrop.Plugin
         public DropService DropService { get; private set; }
 
         public ClaimService ClaimService => _claimService;
+
+        public V2DurableClaimCreator V2DurableClaimCreator => _v2DurableClaimCreator;
 
         protected override void Load()
         {
@@ -43,6 +48,10 @@ namespace FFEmqo.ModifiedItemDrop.Plugin
             _claimStorage = new ClaimStorage(Directory);
             _claimService = new ClaimService(_claimStorage, () => Configuration?.Instance?.ClaimSettings ?? ClaimSettings.CreateDefault());
             _claimService.Initialize();
+
+            _v2DurableClaimStore = new DurableClaimStore(V2ClaimStoragePaths.ForPluginDirectory(Directory));
+            _v2DurableClaimCreator = new V2DurableClaimCreator(_v2DurableClaimStore);
+
             DropService.SetClaimService(_claimService);
 
             _deathHandler = new PlayerDeathHandler(DropService, _claimService);
@@ -65,6 +74,8 @@ namespace FFEmqo.ModifiedItemDrop.Plugin
 
             DropService = null;
             ConfigurationLoader = null;
+            _v2DurableClaimCreator = null;
+            _v2DurableClaimStore = null;
             _claimService = null;
             _claimStorage = null;
 
