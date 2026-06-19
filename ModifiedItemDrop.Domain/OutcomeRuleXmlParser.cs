@@ -1,0 +1,105 @@
+using System;
+using System.Collections.Generic;
+using System.Globalization;
+using System.Linq;
+using System.Xml.Linq;
+
+namespace FFEmqo.ModifiedItemDrop.Domain
+{
+    public static class OutcomeRuleXmlParser
+    {
+        public static IReadOnlyList<OutcomeRule> Parse(string xml)
+        {
+            if (string.IsNullOrWhiteSpace(xml))
+            {
+                throw new InvalidOutcomeRuleConfigurationException("Outcome Rules XML must be provided.");
+            }
+
+            var document = XDocument.Parse(xml);
+            var root = document.Root;
+            if (root == null || root.Name.LocalName != "OutcomeRules")
+            {
+                throw new InvalidOutcomeRuleConfigurationException("Expected root element OutcomeRules.");
+            }
+
+            return root.Elements("Rule").Select(ParseRule).ToList().AsReadOnly();
+        }
+
+        private static OutcomeRule ParseRule(XElement ruleElement)
+        {
+            var name = RequiredAttribute(ruleElement, "name");
+            var priority = int.Parse(RequiredAttribute(ruleElement, "priority"), CultureInfo.InvariantCulture);
+            var target = ParseTarget(RequiredElement(ruleElement, "Target"));
+            var outcome = RequiredElement(ruleElement, "Outcome");
+            var outcomeKind = RequiredAttribute(outcome, "kind");
+            var chance = OptionalDoubleAttribute(outcome, "chance", 1.0);
+
+            switch (outcomeKind)
+            {
+                case "Drop":
+                    return OutcomeRule.Drop(name, priority, target, chance);
+                case "Keep":
+                    return OutcomeRule.Keep(name, priority, target, chance);
+                default:
+                    throw new InvalidOutcomeRuleConfigurationException("Unsupported Outcome kind '" + outcomeKind + "'.");
+            }
+        }
+
+        private static OutcomeTarget ParseTarget(XElement targetElement)
+        {
+            var kind = RequiredAttribute(targetElement, "kind");
+            switch (kind)
+            {
+                case "Any":
+                    return OutcomeTarget.Any();
+                case "Slot":
+                    return OutcomeTarget.ForSlot(ParseSlot(RequiredAttribute(targetElement, "slot")));
+                default:
+                    throw new InvalidOutcomeRuleConfigurationException("Unsupported Target kind '" + kind + "'.");
+            }
+        }
+
+        private static PlayerAssetSlot ParseSlot(string value)
+        {
+            if (Enum.TryParse(value, ignoreCase: false, result: out PlayerAssetSlot slot))
+            {
+                return slot;
+            }
+
+            throw new InvalidOutcomeRuleConfigurationException("Unsupported Player Asset slot '" + value + "'.");
+        }
+
+        private static XElement RequiredElement(XElement parent, string name)
+        {
+            var element = parent.Element(name);
+            if (element == null)
+            {
+                throw new InvalidOutcomeRuleConfigurationException("Rule '" + RequiredAttribute(parent, "name") + "' must include " + name + ".");
+            }
+
+            return element;
+        }
+
+        private static string RequiredAttribute(XElement element, string name)
+        {
+            var attribute = element.Attribute(name);
+            if (attribute == null || string.IsNullOrWhiteSpace(attribute.Value))
+            {
+                throw new InvalidOutcomeRuleConfigurationException("Element " + element.Name.LocalName + " must include attribute " + name + ".");
+            }
+
+            return attribute.Value;
+        }
+
+        private static double OptionalDoubleAttribute(XElement element, string name, double fallback)
+        {
+            var attribute = element.Attribute(name);
+            if (attribute == null || string.IsNullOrWhiteSpace(attribute.Value))
+            {
+                return fallback;
+            }
+
+            return double.Parse(attribute.Value, CultureInfo.InvariantCulture);
+        }
+    }
+}

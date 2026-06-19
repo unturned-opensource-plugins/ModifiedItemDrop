@@ -75,3 +75,19 @@ DOTNET_ROOT=/opt/homebrew/opt/dotnet@8/libexec PATH=/opt/homebrew/opt/dotnet@8/b
 Green result: `Passed: 6, Failed: 0`.
 
 Review note: this is the v2 Outcome Rule target slot, not the later Inventory Capability implementation for hands slot sizing.
+
+## Slice 5 — Nested XML Outcome Rules parser tracer
+
+Behavior: a nested XML `OutcomeRules` document with `Rule`, `Target`, and `Outcome` elements can be parsed into domain rules and used by the planner. The slice covers `Target kind="Slot"`, `Target kind="Any"`, `Outcome kind="Drop"`, and `Outcome kind="Keep"`.
+
+Red: `dotnet test` failed because `OutcomeRuleXmlParser` did not exist.
+
+Green command:
+
+```bash
+DOTNET_ROOT=/opt/homebrew/opt/dotnet@8/libexec PATH=/opt/homebrew/opt/dotnet@8/bin:$PATH dotnet test ModifiedItemDrop.Domain.Tests/ModifiedItemDrop.Domain.Tests.csproj -v minimal
+```
+
+Green result: `Passed: 7, Failed: 0`.
+
+Review note: parser remains in the pure domain layer and produces `OutcomeRule` objects; plugin config loading is still a later adapter step.
