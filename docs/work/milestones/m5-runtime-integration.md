@@ -40,3 +40,19 @@ DOTNET_ROOT=/opt/homebrew/opt/dotnet@8/libexec PATH=/opt/homebrew/opt/dotnet@8/b
 Green result: `Passed: 27, Failed: 0`.
 
 Review note: this slice covers the successful Durable Claim path for unload. Runtime event subscription remains a later adapter slice.
+
+## Slice 3 — Respawn restore failure fallback
+
+Behavior: when respawn restoration fails because assets cannot be placed, unresolved kept Player Assets are durably claimed; if Durable Claim creation fails, they route to Drop fallback.
+
+Red: `dotnet test` failed because `DeathSessionFinalizer.FinalizeRespawnRestoreFailure` did not exist.
+
+Green command:
+
+```bash
+DOTNET_ROOT=/opt/homebrew/opt/dotnet@8/libexec PATH=/opt/homebrew/opt/dotnet@8/bin:$PATH dotnet test ModifiedItemDrop.Domain.Tests/ModifiedItemDrop.Domain.Tests.csproj -v minimal
+```
+
+Green result: `Passed: 28, Failed: 0`.
+
+Review note: this models the domain finalization decision for overflow. Actual inventory placement and player notification remain adapter responsibilities.

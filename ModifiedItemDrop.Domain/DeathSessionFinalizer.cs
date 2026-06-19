@@ -23,6 +23,11 @@ namespace FFEmqo.ModifiedItemDrop.Domain
             return FinalizeWithoutImmediateRestore(session);
         }
 
+        public DeathSessionFinalizationResult FinalizeRespawnRestoreFailure(DeathSession session)
+        {
+            return FinalizeWithoutImmediateRestore(session);
+        }
+
         private DeathSessionFinalizationResult FinalizeWithoutImmediateRestore(DeathSession session)
         {
             if (session == null)

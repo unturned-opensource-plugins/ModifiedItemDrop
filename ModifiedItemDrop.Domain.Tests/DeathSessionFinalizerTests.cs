@@ -48,6 +48,29 @@ public sealed class DeathSessionFinalizerTests
         Assert.Equal("primary", Assert.Single(claim.Assets).AssetId);
     }
 
+
+    [Fact]
+    public void RespawnRestoreOverflowWithFailedDurableClaimDropsUnresolvedAssets()
+    {
+        var asset = new PlayerAsset("hands", PlayerAssetSlot.Hands, itemId: 116);
+        var keptOutcome = new PlayerAssetOutcome(
+            asset,
+            PlayerAssetOutcomeKind.Keep,
+            OutcomeRule.Keep("keep hands", 100, OutcomeTarget.Any(), chance: 1.0));
+        var session = new DeathSession("session-2", steamId: 76561198000000001UL, outcomes: new[] { keptOutcome });
+        var finalizer = new DeathSessionFinalizer(new FailingDurableClaimCreator("disk full"));
+
+        var result = finalizer.FinalizeRespawnRestoreFailure(session);
+
+        Assert.True(result.SessionEnded);
+        Assert.False(result.DurableClaimCreated);
+        var decision = Assert.Single(result.FallbackDecisions);
+        Assert.Equal("hands", decision.Asset.Id);
+        Assert.Equal(DurableClaimFallbackKind.DropFallback, decision.Kind);
+        Assert.Contains("disk full", decision.Reason);
+    }
+
+
     private sealed class RecordingDurableClaimCreator : IDurableClaimCreator
     {
         private readonly DurableClaimCreateResult _result;
