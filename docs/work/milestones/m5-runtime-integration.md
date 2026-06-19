@@ -347,3 +347,18 @@ DOTNET_ROOT=/opt/homebrew/opt/dotnet@8/libexec PATH=/opt/homebrew/opt/dotnet@8/b
 Result: plugin build succeeded with `0 Warning(s), 0 Error(s)`; domain tests `Passed: 44, Failed: 0`.
 
 Review note: this is a temporary M5 diagnostics bridge on the existing `/mid` command. M6 must still replace the v1 flat command surface with the accepted v2 grouped commands and remove v1 aliases before release.
+
+## Slice 21 — Clothing and clothing contents execute v2 outcome actions
+
+Behavior: clothing slots and their contents now use the same v2 `DeathOutcomePlan`/`DeathOutcomeExecutionPlan` as quick-slot inventory. Parent clothing assets and clothing-content assets keep independent runtime actions: each content item can Drop, Delete, or KeepForRestore independently of the parent clothing action. Kept content is restored with the parent clothing when the parent is kept; otherwise it is preserved as inventory pending restore.
+
+Verification command:
+
+```bash
+DOTNET_ROOT=/opt/homebrew/opt/dotnet@8/libexec PATH=/opt/homebrew/opt/dotnet@8/bin:$PATH dotnet test ModifiedItemDrop.Domain.Tests/ModifiedItemDrop.Domain.Tests.csproj -v minimal
+DOTNET_ROOT=/opt/homebrew/opt/dotnet@8/libexec PATH=/opt/homebrew/opt/dotnet@8/bin:$PATH dotnet build ModifiedItemDrop.csproj -v minimal
+```
+
+Result: plugin build succeeded with `0 Warning(s), 0 Error(s)`; domain tests `Passed: 45, Failed: 0`.
+
+Review note: `Drop/V2ClothingExecutionAdapter.cs` processes contents before clearing the clothing slot, so content assets are explicitly routed by v2 execution actions instead of being implicitly lost or forced to follow the parent clothing outcome.

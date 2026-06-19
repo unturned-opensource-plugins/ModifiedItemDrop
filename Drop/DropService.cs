@@ -25,6 +25,7 @@ namespace FFEmqo.ModifiedItemDrop.Drop
         private readonly ChanceResolver _chanceResolver;
         private readonly V2DeathProcessingAdapter _v2DeathProcessingAdapter = new V2DeathProcessingAdapter();
         private readonly V2QuickSlotExecutionAdapter _v2QuickSlotExecutionAdapter = new V2QuickSlotExecutionAdapter();
+        private readonly V2ClothingExecutionAdapter _v2ClothingExecutionAdapter = new V2ClothingExecutionAdapter();
         [ThreadStatic] private static System.Random _random;
         private static System.Random GetRandom() => _random ?? (_random = new System.Random(Environment.TickCount ^ System.Threading.Thread.CurrentThread.ManagedThreadId));
         private readonly Dictionary<CSteamID, PendingRestore> _pendingRestores = new Dictionary<CSteamID, PendingRestore>();
@@ -175,17 +176,24 @@ namespace FFEmqo.ModifiedItemDrop.Drop
                 var quickSlotSnapshots = player.CaptureInventory()
                     .Where(snapshot => snapshot.Page <= 2)
                     .ToList();
-                if (quickSlotSnapshots.Count > 0)
+                var clothingSnapshots = player.CaptureClothing();
+                if (quickSlotSnapshots.Count > 0 || clothingSnapshots.Count > 0)
                 {
                     var deathResult = _v2DeathProcessingAdapter.ProcessDeath(
                         Guid.NewGuid().ToString("N"),
                         (ulong)player.CSteamID,
                         quickSlotSnapshots,
-                        Array.Empty<ClothingItemSnapshot>(),
+                        clothingSnapshots,
                         _configurationLoader.CurrentOutcomeRules);
                     ExecuteV2QuickSlotPlan(
                         player.Player.inventory,
                         quickSlotSnapshots,
+                        deathResult.ExecutionPlan,
+                        pending,
+                        deathPosition);
+                    ExecuteV2ClothingPlan(
+                        player.Player,
+                        clothingSnapshots,
                         deathResult.ExecutionPlan,
                         pending,
                         deathPosition);
@@ -329,6 +337,16 @@ namespace FFEmqo.ModifiedItemDrop.Drop
             Vector3 deathPosition)
         {
             _v2QuickSlotExecutionAdapter.Execute(inventory, snapshots, executionPlan, pending, deathPosition);
+        }
+
+        private void ExecuteV2ClothingPlan(
+            Player player,
+            IEnumerable<ClothingItemSnapshot> snapshots,
+            DeathOutcomeExecutionPlan executionPlan,
+            PendingRestore pending,
+            Vector3 deathPosition)
+        {
+            _v2ClothingExecutionAdapter.Execute(player, snapshots, executionPlan, pending, deathPosition);
         }
 
         /// <summary>

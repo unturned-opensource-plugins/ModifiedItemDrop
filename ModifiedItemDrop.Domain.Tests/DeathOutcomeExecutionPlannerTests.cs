@@ -25,4 +25,26 @@ public sealed class DeathOutcomeExecutionPlannerTests
         Assert.Equal(DeathOutcomeExecutionActionKind.Delete, execution.ForAsset("inventory:1:0").Kind);
         Assert.Equal(DeathOutcomeExecutionActionKind.KeepForRestore, execution.ForAsset("inventory:2:0").Kind);
     }
+
+
+    [Fact]
+    public void ClothingParentAndContentsKeepIndependentRuntimeActions()
+    {
+        var backpack = new PlayerAsset("clothing:Backpack", PlayerAssetSlot.Backpack, itemId: 253);
+        var content = PlayerAsset.ClothingContent(
+            "clothing-content:Backpack:0",
+            PlayerAssetSlot.Backpack,
+            backpack.Id,
+            itemId: 15);
+        var plan = new DeathOutcomePlan(new[]
+        {
+            new PlayerAssetOutcome(backpack, PlayerAssetOutcomeKind.Keep, OutcomeRule.Keep("keep backpack", 100, OutcomeTarget.ForSlot(PlayerAssetSlot.Backpack), chance: 1.0)),
+            new PlayerAssetOutcome(content, PlayerAssetOutcomeKind.Drop, OutcomeRule.Drop("drop backpack contents", 90, OutcomeTarget.ForClothingContent(PlayerAssetSlot.Backpack), chance: 1.0))
+        });
+
+        var execution = new DeathOutcomeExecutionPlanner().Plan(plan);
+
+        Assert.Equal(DeathOutcomeExecutionActionKind.KeepForRestore, execution.ForAsset("clothing:Backpack").Kind);
+        Assert.Equal(DeathOutcomeExecutionActionKind.Drop, execution.ForAsset("clothing-content:Backpack:0").Kind);
+    }
 }
