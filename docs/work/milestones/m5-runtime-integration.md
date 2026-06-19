@@ -56,3 +56,19 @@ DOTNET_ROOT=/opt/homebrew/opt/dotnet@8/libexec PATH=/opt/homebrew/opt/dotnet@8/b
 Green result: `Passed: 28, Failed: 0`.
 
 Review note: this models the domain finalization decision for overflow. Actual inventory placement and player notification remain adapter responsibilities.
+
+## Slice 4 — Emergency failure fallback
+
+Behavior: after a death-processing exception, unresolved kept Player Assets must be restored, durably claimed, or dropped before the Death Session ends. If Durable Claim creation fails and immediate restore is unavailable, the assets route to Drop fallback.
+
+Red: `dotnet test` failed because `DeathSessionFinalizer.FinalizeEmergencyFailure` did not exist.
+
+Green command:
+
+```bash
+DOTNET_ROOT=/opt/homebrew/opt/dotnet@8/libexec PATH=/opt/homebrew/opt/dotnet@8/bin:$PATH dotnet test ModifiedItemDrop.Domain.Tests/ModifiedItemDrop.Domain.Tests.csproj -v minimal
+```
+
+Green result: `Passed: 29, Failed: 0`.
+
+Review note: this pins the domain finalization behavior for exception handling. Runtime try/catch integration remains an adapter slice.

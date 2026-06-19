@@ -28,7 +28,17 @@ namespace FFEmqo.ModifiedItemDrop.Domain
             return FinalizeWithoutImmediateRestore(session);
         }
 
+        public DeathSessionFinalizationResult FinalizeEmergencyFailure(DeathSession session, bool immediateRestoreAvailable)
+        {
+            return Finalize(session, immediateRestoreAvailable);
+        }
+
         private DeathSessionFinalizationResult FinalizeWithoutImmediateRestore(DeathSession session)
+        {
+            return Finalize(session, immediateRestoreAvailable: false);
+        }
+
+        private DeathSessionFinalizationResult Finalize(DeathSession session, bool immediateRestoreAvailable)
         {
             if (session == null)
             {
@@ -51,7 +61,7 @@ namespace FFEmqo.ModifiedItemDrop.Domain
             var fallbackDecisions = _fallbackPlanner.PlanAfterCreateFailure(
                 keptOutcomes,
                 createResult,
-                immediateRestoreAvailable: false);
+                immediateRestoreAvailable: immediateRestoreAvailable);
             return new DeathSessionFinalizationResult(sessionEnded: true, durableClaimCreated: false, fallbackDecisions);
         }
 

@@ -71,6 +71,31 @@ public sealed class DeathSessionFinalizerTests
     }
 
 
+
+    [Fact]
+    public void EmergencyFailureWithFailedDurableClaimDropsUnresolvedKeptAssetsBeforeSessionEnds()
+    {
+        var content = PlayerAsset.ClothingContent(
+            "content-1",
+            sourceClothingSlot: PlayerAssetSlot.Backpack,
+            parentAssetId: "backpack",
+            itemId: 15);
+        var keptOutcome = new PlayerAssetOutcome(
+            content,
+            PlayerAssetOutcomeKind.Keep,
+            OutcomeRule.Keep("keep content", 100, OutcomeTarget.Any(), chance: 1.0));
+        var session = new DeathSession("session-3", steamId: 76561198000000001UL, outcomes: new[] { keptOutcome });
+        var finalizer = new DeathSessionFinalizer(new FailingDurableClaimCreator("disk full"));
+
+        var result = finalizer.FinalizeEmergencyFailure(session, immediateRestoreAvailable: false);
+
+        Assert.True(result.SessionEnded);
+        var decision = Assert.Single(result.FallbackDecisions);
+        Assert.Equal("content-1", decision.Asset.Id);
+        Assert.Equal(DurableClaimFallbackKind.DropFallback, decision.Kind);
+    }
+
+
     private sealed class RecordingDurableClaimCreator : IDurableClaimCreator
     {
         private readonly DurableClaimCreateResult _result;
