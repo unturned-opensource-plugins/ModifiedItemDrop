@@ -21,10 +21,11 @@ namespace FFEmqo.ModifiedItemDrop.Drop
         private readonly ClothingProcessor _clothingProcessor;
         private readonly ClaimService _claimService;
         private readonly IDurableClaimCreator _v2ClaimCreator;
+        private readonly V2ClaimRecoveryService _v2ClaimRecoveryService;
         private readonly ConfigurationLoader _configurationLoader;
 
         public RestoreManager(InventoryProcessor inventoryProcessor, ClothingProcessor clothingProcessor, ClaimService claimService, ConfigurationLoader configurationLoader)
-            : this(inventoryProcessor, clothingProcessor, claimService, null, configurationLoader)
+            : this(inventoryProcessor, clothingProcessor, claimService, null, null, configurationLoader)
         {
         }
 
@@ -33,12 +34,14 @@ namespace FFEmqo.ModifiedItemDrop.Drop
             ClothingProcessor clothingProcessor,
             ClaimService claimService,
             IDurableClaimCreator v2ClaimCreator,
+            V2ClaimRecoveryService v2ClaimRecoveryService,
             ConfigurationLoader configurationLoader)
         {
             _inventoryProcessor = inventoryProcessor ?? throw new ArgumentNullException(nameof(inventoryProcessor));
             _clothingProcessor = clothingProcessor ?? throw new ArgumentNullException(nameof(clothingProcessor));
             _claimService = claimService;
             _v2ClaimCreator = v2ClaimCreator;
+            _v2ClaimRecoveryService = v2ClaimRecoveryService;
             _configurationLoader = configurationLoader;
         }
 
@@ -214,7 +217,26 @@ namespace FFEmqo.ModifiedItemDrop.Drop
         /// </summary>
         public void ClaimPending(UnturnedPlayer player)
         {
-            if (player == null || _claimService == null)
+            if (player == null || (_v2ClaimRecoveryService == null && _claimService == null))
+            {
+                UtilityHelper.TryNotify(player, "没有可领取的待发放物品。");
+                return;
+            }
+
+            if (_v2ClaimRecoveryService != null &&
+                _v2ClaimRecoveryService.ClaimOldest(player, out var v2ItemsRestored, out var v2HasMore))
+            {
+                var msg = $"已领取 {v2ItemsRestored} 个物品和 0 件衣物。";
+                if (v2HasMore || HasV1Pending(player))
+                {
+                    msg += " 仍有更多待领取，使用 /mid claim 继续领取。";
+                }
+
+                UtilityHelper.TryNotify(player, msg);
+                return;
+            }
+
+            if (_claimService == null)
             {
                 UtilityHelper.TryNotify(player, "没有可领取的待发放物品。");
                 return;
@@ -240,18 +262,39 @@ namespace FFEmqo.ModifiedItemDrop.Drop
         /// </summary>
         public void ClaimAllPending(UnturnedPlayer player)
         {
-            if (player == null || _claimService == null)
+            if (player == null || (_v2ClaimRecoveryService == null && _claimService == null))
             {
                 return;
             }
 
-            if (_claimService.ClaimAll(player, out var totalItems, out var totalClothing, out var claimCount))
+            var totalItems = 0;
+            var totalClothing = 0;
+            var claimCount = 0;
+
+            if (_v2ClaimRecoveryService != null &&
+                _v2ClaimRecoveryService.ClaimAll(player, out var v2Items, out var v2ClaimCount))
             {
-                if (totalItems > 0 || totalClothing > 0)
-                {
-                    UtilityHelper.TryNotify(player, $"已自动领取 {claimCount} 个包，共 {totalItems} 个物品和 {totalClothing} 件衣物。");
-                }
+                totalItems += v2Items;
+                claimCount += v2ClaimCount;
             }
+
+            if (_claimService != null &&
+                _claimService.ClaimAll(player, out var v1Items, out var v1Clothing, out var v1ClaimCount))
+            {
+                totalItems += v1Items;
+                totalClothing += v1Clothing;
+                claimCount += v1ClaimCount;
+            }
+
+            if (totalItems > 0 || totalClothing > 0)
+            {
+                UtilityHelper.TryNotify(player, $"已自动领取 {claimCount} 个包，共 {totalItems} 个物品和 {totalClothing} 件衣物。");
+            }
+        }
+
+        private bool HasV1Pending(UnturnedPlayer player)
+        {
+            return player != null && _claimService != null && _claimService.GetPendingCount((ulong)player.CSteamID) > 0;
         }
 
         public void GiveRespawnItems(UnturnedPlayer player)

@@ -31,6 +31,7 @@ namespace FFEmqo.ModifiedItemDrop.Drop
         private volatile RestoreManager _restoreManager;
         private ClaimService _claimService;
         private IDurableClaimCreator _v2ClaimCreator;
+        private V2ClaimRecoveryService _v2ClaimRecoveryService;
 
         public DropService(ConfigurationLoader configurationLoader)
         {
@@ -44,20 +45,26 @@ namespace FFEmqo.ModifiedItemDrop.Drop
         {
             _inventoryProcessor = new InventoryProcessor(_chanceResolver, _configurationLoader, GetRandom);
             _clothingProcessor = new ClothingProcessor(_configurationLoader, GetRandom, _inventoryProcessor);
-            _restoreManager = new RestoreManager(_inventoryProcessor, _clothingProcessor, _claimService, _v2ClaimCreator, _configurationLoader);
+            _restoreManager = new RestoreManager(_inventoryProcessor, _clothingProcessor, _claimService, _v2ClaimCreator, _v2ClaimRecoveryService, _configurationLoader);
         }
 
         public void SetClaimService(ClaimService claimService)
         {
             _claimService = claimService;
             // Reinitialize RestoreManager with the new claim service
-            _restoreManager = new RestoreManager(_inventoryProcessor, _clothingProcessor, _claimService, _v2ClaimCreator, _configurationLoader);
+            _restoreManager = new RestoreManager(_inventoryProcessor, _clothingProcessor, _claimService, _v2ClaimCreator, _v2ClaimRecoveryService, _configurationLoader);
         }
 
         public void SetV2DurableClaimCreator(IDurableClaimCreator claimCreator)
         {
             _v2ClaimCreator = claimCreator;
-            _restoreManager = new RestoreManager(_inventoryProcessor, _clothingProcessor, _claimService, _v2ClaimCreator, _configurationLoader);
+            _restoreManager = new RestoreManager(_inventoryProcessor, _clothingProcessor, _claimService, _v2ClaimCreator, _v2ClaimRecoveryService, _configurationLoader);
+        }
+
+        public void SetV2ClaimRecoveryService(V2ClaimRecoveryService claimRecoveryService)
+        {
+            _v2ClaimRecoveryService = claimRecoveryService;
+            _restoreManager = new RestoreManager(_inventoryProcessor, _clothingProcessor, _claimService, _v2ClaimCreator, _v2ClaimRecoveryService, _configurationLoader);
         }
 
         public void RefreshRules()

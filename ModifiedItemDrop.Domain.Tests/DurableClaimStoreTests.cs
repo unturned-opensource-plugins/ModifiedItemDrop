@@ -64,6 +64,45 @@ public sealed class DurableClaimStoreTests
     }
 
 
+    [Fact]
+    public void PruneRestoredAssetsKeepsOnlyUnclaimedAssetsAndRemovesEmptyClaim()
+    {
+        var pluginDirectory = CreateTempDirectory();
+        try
+        {
+            var store = new DurableClaimStore(V2ClaimStoragePaths.ForPluginDirectory(pluginDirectory));
+            var claim = new DurableClaimRecord(
+                id: "claim-1",
+                steamId: 76561198000000001UL,
+                assets: new[]
+                {
+                    new DurableClaimAsset("asset-1", itemId: 363, amount: 1, quality: 100, state: Array.Empty<byte>()),
+                    new DurableClaimAsset("asset-2", itemId: 15, amount: 2, quality: 80, state: new byte[] { 1, 2, 3 })
+                });
+            store.TryCreate(claim);
+
+            var partial = store.TryPruneAssets("claim-1", new[] { "asset-1" });
+            var partiallyReloaded = new DurableClaimStore(V2ClaimStoragePaths.ForPluginDirectory(pluginDirectory)).Load();
+
+            Assert.True(partial.Removed);
+            var remainingClaim = Assert.Single(partiallyReloaded.Claims);
+            var remainingAsset = Assert.Single(remainingClaim.Assets);
+            Assert.Equal("asset-2", remainingAsset.AssetId);
+            Assert.Equal(15, remainingAsset.ItemId);
+
+            var final = store.TryPruneAssets("claim-1", new[] { "asset-2" });
+            var finallyReloaded = new DurableClaimStore(V2ClaimStoragePaths.ForPluginDirectory(pluginDirectory)).Load();
+
+            Assert.True(final.Removed);
+            Assert.Empty(finallyReloaded.Claims);
+        }
+        finally
+        {
+            Directory.Delete(pluginDirectory, recursive: true);
+        }
+    }
+
+
 
     [Fact]
     public void CorruptPrimaryStorageIsPreservedAndBackupIsLoaded()

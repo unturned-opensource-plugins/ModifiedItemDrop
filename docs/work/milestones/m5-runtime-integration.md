@@ -146,3 +146,20 @@ DOTNET_ROOT=/opt/homebrew/opt/dotnet@8/libexec PATH=/opt/homebrew/opt/dotnet@8/b
 Result: plugin build succeeded with `0 Warning(s), 0 Error(s)`; domain tests `Passed: 33, Failed: 0`.
 
 Review note: v1 `ClaimService` remains available for existing claim commands until the v2 command/Claim Recovery slices replace it.
+
+## Slice 10 — `/mid claim` can recover v2 Durable Claims
+
+Behavior: v2 pending restores written to `claims/v2/claims.json` are recoverable through the existing claim entrypoint while M6 command redesign is still pending. Successfully restored Durable Claim assets are pruned from v2 storage; partially restored claims keep only unresolved assets, and fully restored claims are removed.
+
+Red: `dotnet test` failed because `DurableClaimStore.TryPruneAssets` did not exist.
+
+Green command:
+
+```bash
+DOTNET_ROOT=/opt/homebrew/opt/dotnet@8/libexec PATH=/opt/homebrew/opt/dotnet@8/bin:$PATH dotnet test ModifiedItemDrop.Domain.Tests/ModifiedItemDrop.Domain.Tests.csproj -v minimal
+DOTNET_ROOT=/opt/homebrew/opt/dotnet@8/libexec PATH=/opt/homebrew/opt/dotnet@8/bin:$PATH dotnet build ModifiedItemDrop.csproj -v minimal
+```
+
+Result: plugin build succeeded with `0 Warning(s), 0 Error(s)`; domain tests `Passed: 34, Failed: 0`.
+
+Review note: the runtime `V2ClaimRecoveryService` restores v2 Durable Claim assets as normal inventory items and prunes only successfully placed assets. The existing v1 Claim service remains as a fallback for old claims until v2 commands and migration are finalized.

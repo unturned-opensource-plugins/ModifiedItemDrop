@@ -21,6 +21,7 @@ namespace FFEmqo.ModifiedItemDrop.Plugin
         private ClaimService _claimService;
         private DurableClaimStore _v2DurableClaimStore;
         private V2DurableClaimCreator _v2DurableClaimCreator;
+        private V2ClaimRecoveryService _v2ClaimRecoveryService;
 
         public static ModifiedItemDropPlugin Instance { get; private set; }
 
@@ -31,6 +32,8 @@ namespace FFEmqo.ModifiedItemDrop.Plugin
         public ClaimService ClaimService => _claimService;
 
         public V2DurableClaimCreator V2DurableClaimCreator => _v2DurableClaimCreator;
+
+        public V2ClaimRecoveryService V2ClaimRecoveryService => _v2ClaimRecoveryService;
 
         protected override void Load()
         {
@@ -51,9 +54,11 @@ namespace FFEmqo.ModifiedItemDrop.Plugin
 
             _v2DurableClaimStore = new DurableClaimStore(V2ClaimStoragePaths.ForPluginDirectory(Directory));
             _v2DurableClaimCreator = new V2DurableClaimCreator(_v2DurableClaimStore);
+            _v2ClaimRecoveryService = new V2ClaimRecoveryService(_v2DurableClaimStore);
 
             DropService.SetClaimService(_claimService);
             DropService.SetV2DurableClaimCreator(_v2DurableClaimCreator);
+            DropService.SetV2ClaimRecoveryService(_v2ClaimRecoveryService);
 
             _deathHandler = new PlayerDeathHandler(DropService, _claimService);
             _deathHandler.Enable();
@@ -76,6 +81,7 @@ namespace FFEmqo.ModifiedItemDrop.Plugin
             DropService = null;
             ConfigurationLoader = null;
             _v2DurableClaimCreator = null;
+            _v2ClaimRecoveryService = null;
             _v2DurableClaimStore = null;
             _claimService = null;
             _claimStorage = null;
@@ -213,4 +219,3 @@ namespace FFEmqo.ModifiedItemDrop.Plugin
         }
     }
 }
-

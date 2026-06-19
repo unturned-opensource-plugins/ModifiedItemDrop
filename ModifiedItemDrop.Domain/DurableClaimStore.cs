@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using Newtonsoft.Json;
 
 namespace FFEmqo.ModifiedItemDrop.Domain
@@ -48,6 +49,58 @@ namespace FFEmqo.ModifiedItemDrop.Domain
                 if (removed == 0)
                 {
                     return DurableClaimRemoveResult.Failure("Claim '" + claimId + "' was not found.");
+                }
+
+                WriteAll(claims);
+                return DurableClaimRemoveResult.Success();
+            }
+            catch (Exception ex)
+            {
+                return DurableClaimRemoveResult.Failure(ex.Message);
+            }
+        }
+
+        public DurableClaimRemoveResult TryPruneAssets(string claimId, IEnumerable<string> restoredAssetIds)
+        {
+            if (string.IsNullOrWhiteSpace(claimId))
+            {
+                throw new ArgumentException("Claim id must be provided.", nameof(claimId));
+            }
+
+            if (restoredAssetIds == null)
+            {
+                throw new ArgumentNullException(nameof(restoredAssetIds));
+            }
+
+            try
+            {
+                var restored = new HashSet<string>(restoredAssetIds.Where(id => !string.IsNullOrWhiteSpace(id)));
+                if (restored.Count == 0)
+                {
+                    return DurableClaimRemoveResult.Failure("No restored asset ids were provided.");
+                }
+
+                var claims = new List<DurableClaimRecord>(Load().Claims);
+                var claimIndex = claims.FindIndex(claim => claim.Id == claimId);
+                if (claimIndex < 0)
+                {
+                    return DurableClaimRemoveResult.Failure("Claim '" + claimId + "' was not found.");
+                }
+
+                var claim = claims[claimIndex];
+                var remainingAssets = claim.Assets.Where(asset => !restored.Contains(asset.AssetId)).ToList();
+                if (remainingAssets.Count == claim.Assets.Count)
+                {
+                    return DurableClaimRemoveResult.Failure("No matching assets were found for claim '" + claimId + "'.");
+                }
+
+                if (remainingAssets.Count == 0)
+                {
+                    claims.RemoveAt(claimIndex);
+                }
+                else
+                {
+                    claims[claimIndex] = new DurableClaimRecord(claim.Id, claim.SteamId, remainingAssets);
                 }
 
                 WriteAll(claims);
