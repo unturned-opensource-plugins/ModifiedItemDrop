@@ -102,3 +102,19 @@ DOTNET_ROOT=/opt/homebrew/opt/dotnet@8/libexec PATH=/opt/homebrew/opt/dotnet@8/b
 ```
 
 Result: `Passed: 32, Failed: 0`.
+
+## Slice 7 — Death processing creates tracked Death Session
+
+Behavior: death processing converts a Player Asset Outcome plan into a Death Session that tracks only `Keep` outcomes. Terminal Drop/Delete outcomes do not become pending Death Session responsibility.
+
+Red: `dotnet test` failed because `DeathSessionFactory` did not exist.
+
+Green command:
+
+```bash
+DOTNET_ROOT=/opt/homebrew/opt/dotnet@8/libexec PATH=/opt/homebrew/opt/dotnet@8/bin:$PATH dotnet test ModifiedItemDrop.Domain.Tests/ModifiedItemDrop.Domain.Tests.csproj -v minimal
+```
+
+Green result: `Passed: 33, Failed: 0`.
+
+Review note: adapter code must translate Rocket/Unturned inventory snapshots into Player Assets, run outcome planning, and create Death Sessions from this factory.
