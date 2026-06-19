@@ -52,9 +52,22 @@ namespace FFEmqo.ModifiedItemDrop.Domain
         {
             var name = RequiredAttribute(ruleElement, "name");
             var priority = int.Parse(RequiredAttribute(ruleElement, "priority"), CultureInfo.InvariantCulture);
-            var target = ParseTarget(RequiredElement(ruleElement, "Target"));
             var outcome = RequiredElement(ruleElement, "Outcome");
             var outcomeKind = RequiredAttribute(outcome, "kind");
+
+            if (outcomeKind == "Grant")
+            {
+                var trigger = ParseTrigger(RequiredElement(ruleElement, "Trigger"));
+                return OutcomeRule.Grant(
+                    name,
+                    priority,
+                    trigger,
+                    ParseUShort(RequiredAttribute(outcome, "itemId"), "itemId"),
+                    ParseByte(RequiredAttribute(outcome, "amount"), "amount"),
+                    ParseByte(RequiredAttribute(outcome, "quality"), "quality"));
+            }
+
+            var target = ParseTarget(RequiredElement(ruleElement, "Target"));
             var chance = OptionalDoubleAttribute(outcome, "chance", 1.0);
 
             switch (outcomeKind)
@@ -67,6 +80,18 @@ namespace FFEmqo.ModifiedItemDrop.Domain
                     return OutcomeRule.Delete(name, priority, target);
                 default:
                     throw new InvalidOutcomeRuleConfigurationException("Unsupported Outcome kind '" + outcomeKind + "'.");
+            }
+        }
+
+        private static OutcomeRuleTriggerKind ParseTrigger(XElement triggerElement)
+        {
+            var kind = RequiredAttribute(triggerElement, "kind");
+            switch (kind)
+            {
+                case "AfterDeathRespawn":
+                    return OutcomeRuleTriggerKind.AfterDeathRespawn;
+                default:
+                    throw new InvalidOutcomeRuleConfigurationException("Unsupported Trigger kind '" + kind + "'.");
             }
         }
 
@@ -86,6 +111,16 @@ namespace FFEmqo.ModifiedItemDrop.Domain
                 default:
                     throw new InvalidOutcomeRuleConfigurationException("Unsupported Target kind '" + kind + "'.");
             }
+        }
+
+        private static byte ParseByte(string value, string attributeName)
+        {
+            if (byte.TryParse(value, NumberStyles.None, CultureInfo.InvariantCulture, out var parsed))
+            {
+                return parsed;
+            }
+
+            throw new InvalidOutcomeRuleConfigurationException("Attribute " + attributeName + " must be an unsigned 8-bit integer.");
         }
 
         private static ushort ParseUShort(string value, string attributeName)

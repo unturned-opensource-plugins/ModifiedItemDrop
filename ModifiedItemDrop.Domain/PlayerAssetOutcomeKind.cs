@@ -4,6 +4,7 @@ namespace FFEmqo.ModifiedItemDrop.Domain
     {
         Drop = 1,
         Keep = 2,
-        Delete = 3
+        Delete = 3,
+        Grant = 4
     }
 }

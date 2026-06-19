@@ -169,3 +169,19 @@ DOTNET_ROOT=/opt/homebrew/opt/dotnet@8/libexec PATH=/opt/homebrew/opt/dotnet@8/b
 ```
 
 Result: `Passed: 12, Failed: 0`.
+
+## Slice 11 — AfterDeathRespawn Grant rule
+
+Behavior: nested XML can express an event-triggered Respawn Grant rule using `Trigger kind="AfterDeathRespawn"` and `Outcome kind="Grant"`; the pure domain planner projects it into a `RespawnGrantOutcome`.
+
+Red: `dotnet test` failed because `RespawnGrantPlanner` did not exist.
+
+Green command:
+
+```bash
+DOTNET_ROOT=/opt/homebrew/opt/dotnet@8/libexec PATH=/opt/homebrew/opt/dotnet@8/bin:$PATH dotnet test ModifiedItemDrop.Domain.Tests/ModifiedItemDrop.Domain.Tests.csproj -v minimal
+```
+
+Green result: `Passed: 13, Failed: 0`.
+
+Review note: Grant rules are trigger-based and do not participate in death-processed Player Asset target matching. Runtime gating to a tracked Death Session remains a later integration milestone.

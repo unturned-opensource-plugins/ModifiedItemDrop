@@ -50,7 +50,7 @@ namespace FFEmqo.ModifiedItemDrop.Domain
 
         private static void EnsureCatchAllRuleExists(IEnumerable<OutcomeRule> rules)
         {
-            if (!rules.Any(rule => rule.Target.IsCatchAll))
+            if (!rules.Any(rule => rule.Target != null && rule.Target.IsCatchAll))
             {
                 throw new InvalidOutcomeRuleConfigurationException(
                     "Outcome Rule configuration must include an explicit catch-all rule, such as Target kind Any.");
@@ -60,7 +60,7 @@ namespace FFEmqo.ModifiedItemDrop.Domain
         private PlayerAssetOutcome PlanAsset(PlayerAsset asset, IEnumerable<OutcomeRule> rules)
         {
             var matchingPriorityGroups = rules
-                .Where(rule => rule.Target.Matches(asset))
+                .Where(rule => rule.Target != null && rule.Target.Matches(asset))
                 .GroupBy(rule => rule.Priority)
                 .OrderByDescending(group => group.Key);
 
