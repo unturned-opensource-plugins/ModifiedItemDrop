@@ -1,8 +1,10 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using FFEmqo.ModifiedItemDrop.Claim;
 using FFEmqo.ModifiedItemDrop.Configuration;
 using FFEmqo.ModifiedItemDrop.Domain;
+using FFEmqo.ModifiedItemDrop.Extensions;
 using FFEmqo.ModifiedItemDrop.Models;
 using FFEmqo.ModifiedItemDrop.Utilities;
 using Rocket.API;
@@ -21,6 +23,7 @@ namespace FFEmqo.ModifiedItemDrop.Drop
     {
         private readonly ConfigurationLoader _configurationLoader;
         private readonly ChanceResolver _chanceResolver;
+        private readonly V2DeathProcessingAdapter _v2DeathProcessingAdapter = new V2DeathProcessingAdapter();
         private readonly V2QuickSlotExecutionAdapter _v2QuickSlotExecutionAdapter = new V2QuickSlotExecutionAdapter();
         [ThreadStatic] private static System.Random _random;
         private static System.Random GetRandom() => _random ?? (_random = new System.Random(Environment.TickCount ^ System.Threading.Thread.CurrentThread.ManagedThreadId));
@@ -143,6 +146,25 @@ namespace FFEmqo.ModifiedItemDrop.Drop
                 var restMgr = _restoreManager;
 
                 ForceUnequipCurrentItem(player);
+                var quickSlotSnapshots = player.CaptureInventory()
+                    .Where(snapshot => snapshot.Page <= 2)
+                    .ToList();
+                if (quickSlotSnapshots.Count > 0)
+                {
+                    var deathResult = _v2DeathProcessingAdapter.ProcessDeath(
+                        Guid.NewGuid().ToString("N"),
+                        (ulong)player.CSteamID,
+                        quickSlotSnapshots,
+                        Array.Empty<ClothingItemSnapshot>(),
+                        _configurationLoader.CurrentOutcomeRules);
+                    ExecuteV2QuickSlotPlan(
+                        player.Player.inventory,
+                        quickSlotSnapshots,
+                        deathResult.ExecutionPlan,
+                        pending,
+                        deathPosition);
+                }
+
                 invProc.ProcessInventory(player, pending, deathPosition);
                 clothProc.ProcessClothing(player, pending, deathPosition);
 

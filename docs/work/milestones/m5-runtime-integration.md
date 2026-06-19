@@ -281,3 +281,20 @@ rg -n "Rocket|Unturned|Unity|Steamworks|SDG" ModifiedItemDrop.Domain ModifiedIte
 Result: no matches.
 
 Review note: `Drop/V2QuickSlotExecutionAdapter.cs` is the first concrete runtime mutator for v2 `ExecutionPlan`. `DropService` now has a seam for invoking it; the next slice should replace the primary quick-slot branch in `HandlePlayerDying` with this adapter once v2 rules are available from configuration.
+
+## Slice 17 — Quick-slot death handling uses configured v2 Outcome Rules
+
+Behavior: runtime configuration exposes v2 Outcome Rules XML with an explicit default catch-all rule, and `DropService.HandlePlayerDying` routes quick-slot inventory snapshots through `V2DeathProcessingAdapter` and `V2QuickSlotExecutionAdapter` before legacy processors run. This replaces legacy quick-slot ChanceResolver decisions with canonical `DeathOutcomePlan`/`ExecutionPlan` decisions while leaving clothing migration for later slices.
+
+Red: `dotnet test` failed because `DefaultOutcomeRules` did not exist.
+
+Green command:
+
+```bash
+DOTNET_ROOT=/opt/homebrew/opt/dotnet@8/libexec PATH=/opt/homebrew/opt/dotnet@8/bin:$PATH dotnet test ModifiedItemDrop.Domain.Tests/ModifiedItemDrop.Domain.Tests.csproj -v minimal
+DOTNET_ROOT=/opt/homebrew/opt/dotnet@8/libexec PATH=/opt/homebrew/opt/dotnet@8/bin:$PATH dotnet build ModifiedItemDrop.csproj -v minimal
+```
+
+Result: plugin build succeeded with `0 Warning(s), 0 Error(s)`; domain tests `Passed: 42, Failed: 0`.
+
+Review note: `ModifiedItemDropConfiguration.OutcomeRulesXml` defaults to `DefaultOutcomeRules.Xml`; `ConfigurationLoader.CurrentOutcomeRules` parses it once on reload. Invalid-rule safe-mode behavior is still pending and must be completed before M5/M7 release readiness.

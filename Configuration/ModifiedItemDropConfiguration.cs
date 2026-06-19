@@ -1,4 +1,5 @@
 using Rocket.API;
+using FFEmqo.ModifiedItemDrop.Domain;
 
 namespace FFEmqo.ModifiedItemDrop.Configuration
 {
@@ -7,6 +8,8 @@ namespace FFEmqo.ModifiedItemDrop.Configuration
         public bool EnableDebugLogging { get; set; } = false;
 
         public bool EnableClothingContentsDebugLogging { get; set; } = false;
+
+        public string OutcomeRulesXml { get; set; } = DefaultOutcomeRules.Xml;
 
         public DropRuleSet RuleSet { get; set; } = DropRuleSet.CreateDefault();
 
@@ -20,6 +23,7 @@ namespace FFEmqo.ModifiedItemDrop.Configuration
         {
             EnableDebugLogging = false;
             EnableClothingContentsDebugLogging = false;
+            OutcomeRulesXml = DefaultOutcomeRules.Xml;
             RuleSet = DropRuleSet.CreateDefault();
             ClaimSettings = ClaimSettings.CreateDefault();
             HandsSlotSettings = HandsSlotSettings.CreateDefault();
@@ -27,4 +31,3 @@ namespace FFEmqo.ModifiedItemDrop.Configuration
         }
     }
 }
-

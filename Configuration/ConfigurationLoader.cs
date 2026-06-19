@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using FFEmqo.ModifiedItemDrop.Domain;
 using FFEmqo.ModifiedItemDrop.Plugin;
 using Rocket.Core.Logging;
 
@@ -7,6 +9,7 @@ namespace FFEmqo.ModifiedItemDrop.Configuration
     public sealed class ConfigurationLoader
     {
         private DropRuleSet _currentRuleSet;
+        private IReadOnlyList<OutcomeRule> _currentOutcomeRules = Array.Empty<OutcomeRule>();
         private readonly ModifiedItemDropPlugin _plugin;
 
         public bool IsDebugLoggingEnabled { get; private set; }
@@ -23,6 +26,8 @@ namespace FFEmqo.ModifiedItemDrop.Configuration
 
         public DropRuleSet CurrentRuleSet => _currentRuleSet;
 
+        public IReadOnlyList<OutcomeRule> CurrentOutcomeRules => _currentOutcomeRules;
+
         public HandsSlotSettings HandsSlotSettings => _plugin.Configuration?.Instance?.HandsSlotSettings ?? HandsSlotSettings.CreateDefault();
 
         public DeathSettings DeathSettings => _plugin.Configuration?.Instance?.DeathSettings ?? DeathSettings.CreateDefault();
@@ -30,9 +35,13 @@ namespace FFEmqo.ModifiedItemDrop.Configuration
         public ConfigurationReloadSummary ReloadFromConfiguration()
         {
             var config = _plugin.Configuration?.Instance ?? new ModifiedItemDropConfiguration();
+            var outcomeRulesXml = string.IsNullOrWhiteSpace(config.OutcomeRulesXml)
+                ? DefaultOutcomeRules.Xml
+                : config.OutcomeRulesXml;
             var rawRuleSet = config.RuleSet ?? DropRuleSet.CreateDefault();
             var normalizedRuleSet = rawRuleSet.NormalizedCopy();
 
+            _currentOutcomeRules = OutcomeRuleXmlParser.Parse(outcomeRulesXml);
             _currentRuleSet = normalizedRuleSet;
             IsDebugLoggingEnabled = config.EnableDebugLogging;
             IsClothingContentsDebugEnabled = config.EnableClothingContentsDebugLogging;
@@ -73,4 +82,3 @@ namespace FFEmqo.ModifiedItemDrop.Configuration
         }
     }
 }
-
