@@ -9,6 +9,7 @@
 
   <ItemGroup>
 	  <PackageReference Include="RestoreMonarchy.RocketRedist" Version="3.*" ExcludeAssets="runtime" />
+    <ProjectReference Include="ModifiedItemDrop.Domain/ModifiedItemDrop.Domain.csproj" />
   </ItemGroup>
 
   <ItemGroup>
