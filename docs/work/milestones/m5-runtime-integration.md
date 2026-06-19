@@ -214,3 +214,28 @@ DOTNET_ROOT=/opt/homebrew/opt/dotnet@8/libexec PATH=/opt/homebrew/opt/dotnet@8/b
 Result: plugin build succeeded with `0 Warning(s), 0 Error(s)`; domain tests `Passed: 38, Failed: 0`.
 
 Review note: `ModifiedItemDrop.Domain/PlayerAssetProjection.cs` owns the pure canonical projection contract. `Drop/V2PlayerAssetRuntimeAdapter.cs` is the Rocket/Unturned boundary adapter and keeps runtime types outside the Domain project.
+
+## Slice 14 — Death processing orchestrator creates the v2 runtime seam
+
+Behavior: runtime death processing has one orchestration path from projected Player Assets and Outcome Rules to a `DeathOutcomePlan` plus optional pending `DeathSession`. A Drop outcome produces no pending Death Session responsibility; a Keep outcome creates Death Session responsibility for later respawn, disconnect, unload, or fallback finalization.
+
+Red: `dotnet test` failed because `DeathProcessingOrchestrator` did not exist.
+
+Green command:
+
+```bash
+DOTNET_ROOT=/opt/homebrew/opt/dotnet@8/libexec PATH=/opt/homebrew/opt/dotnet@8/bin:$PATH dotnet test ModifiedItemDrop.Domain.Tests/ModifiedItemDrop.Domain.Tests.csproj -v minimal
+DOTNET_ROOT=/opt/homebrew/opt/dotnet@8/libexec PATH=/opt/homebrew/opt/dotnet@8/bin:$PATH dotnet build ModifiedItemDrop.csproj -v minimal
+```
+
+Result: plugin build succeeded with `0 Warning(s), 0 Error(s)`; domain tests `Passed: 40, Failed: 0`.
+
+Additional invariant check:
+
+```bash
+rg -n "Rocket|Unturned|Unity|Steamworks|SDG" ModifiedItemDrop.Domain ModifiedItemDrop.Domain.Tests -g'*.cs'
+```
+
+Result: no matches.
+
+Review note: `Drop/V2DeathProcessingAdapter.cs` is now the runtime-facing seam that projects Unturned snapshots and delegates to the pure domain orchestrator. The next slice can execute Drop/Delete/Keep effects from the returned plan inside `DropService.HandlePlayerDying`.
