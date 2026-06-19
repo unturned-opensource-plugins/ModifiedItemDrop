@@ -22,10 +22,14 @@ namespace FFEmqo.ModifiedItemDrop.Configuration
 
         public bool ClothingContentsDebugEnabled { get; set; }
 
+        public bool DeathProcessingEnabled { get; set; } = true;
+
+        public string SafeModeReason { get; set; }
+
         public bool HasWarnings =>
             RegionDiscardedEntries > 0 ||
             CustomItemDiscardedEntries > 0 ||
-            ClothingDiscardedEntries > 0;
+            ClothingDiscardedEntries > 0 ||
+            !DeathProcessingEnabled;
     }
 }
-

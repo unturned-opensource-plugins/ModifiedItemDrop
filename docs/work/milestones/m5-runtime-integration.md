@@ -298,3 +298,20 @@ DOTNET_ROOT=/opt/homebrew/opt/dotnet@8/libexec PATH=/opt/homebrew/opt/dotnet@8/b
 Result: plugin build succeeded with `0 Warning(s), 0 Error(s)`; domain tests `Passed: 42, Failed: 0`.
 
 Review note: `ModifiedItemDropConfiguration.OutcomeRulesXml` defaults to `DefaultOutcomeRules.Xml`; `ConfigurationLoader.CurrentOutcomeRules` parses it once on reload. Invalid-rule safe-mode behavior is still pending and must be completed before M5/M7 release readiness.
+
+## Slice 18 — Invalid Outcome Rules enter safe mode
+
+Behavior: invalid v2 Outcome Rules produce an explicit safe-mode configuration state instead of falling back to hidden Drop/Keep defaults or throwing out of plugin configuration load. Safe mode disables death processing before any player assets are mutated while leaving Claim Recovery command paths outside this death-processing guard.
+
+Red: `dotnet test` failed because `OutcomeRuleConfigurationState` did not exist.
+
+Green command:
+
+```bash
+DOTNET_ROOT=/opt/homebrew/opt/dotnet@8/libexec PATH=/opt/homebrew/opt/dotnet@8/bin:$PATH dotnet test ModifiedItemDrop.Domain.Tests/ModifiedItemDrop.Domain.Tests.csproj -v minimal
+DOTNET_ROOT=/opt/homebrew/opt/dotnet@8/libexec PATH=/opt/homebrew/opt/dotnet@8/bin:$PATH dotnet build ModifiedItemDrop.csproj -v minimal
+```
+
+Result: plugin build succeeded with `0 Warning(s), 0 Error(s)`; domain tests `Passed: 43, Failed: 0`.
+
+Review note: `ConfigurationLoader.IsDeathProcessingEnabled` and `SafeModeReason` now reflect v2 Outcome Rules state. `DropService.HandlePlayerDying` returns before `ForceUnequipCurrentItem` or any runtime mutation when safe mode is active. Claim Recovery methods do not use this death-processing guard, preserving recovery availability when storage is healthy.

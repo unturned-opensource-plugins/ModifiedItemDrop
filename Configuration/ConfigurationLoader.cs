@@ -10,6 +10,7 @@ namespace FFEmqo.ModifiedItemDrop.Configuration
     {
         private DropRuleSet _currentRuleSet;
         private IReadOnlyList<OutcomeRule> _currentOutcomeRules = Array.Empty<OutcomeRule>();
+        private OutcomeRuleConfigurationState _outcomeRuleState = OutcomeRuleConfigurationState.FromXml(DefaultOutcomeRules.Xml);
         private readonly ModifiedItemDropPlugin _plugin;
 
         public bool IsDebugLoggingEnabled { get; private set; }
@@ -28,6 +29,10 @@ namespace FFEmqo.ModifiedItemDrop.Configuration
 
         public IReadOnlyList<OutcomeRule> CurrentOutcomeRules => _currentOutcomeRules;
 
+        public bool IsDeathProcessingEnabled => _outcomeRuleState.DeathProcessingEnabled;
+
+        public string SafeModeReason => _outcomeRuleState.Diagnostic;
+
         public HandsSlotSettings HandsSlotSettings => _plugin.Configuration?.Instance?.HandsSlotSettings ?? HandsSlotSettings.CreateDefault();
 
         public DeathSettings DeathSettings => _plugin.Configuration?.Instance?.DeathSettings ?? DeathSettings.CreateDefault();
@@ -41,7 +46,8 @@ namespace FFEmqo.ModifiedItemDrop.Configuration
             var rawRuleSet = config.RuleSet ?? DropRuleSet.CreateDefault();
             var normalizedRuleSet = rawRuleSet.NormalizedCopy();
 
-            _currentOutcomeRules = OutcomeRuleXmlParser.Parse(outcomeRulesXml);
+            _outcomeRuleState = OutcomeRuleConfigurationState.FromXml(outcomeRulesXml);
+            _currentOutcomeRules = _outcomeRuleState.Rules;
             _currentRuleSet = normalizedRuleSet;
             IsDebugLoggingEnabled = config.EnableDebugLogging;
             IsClothingContentsDebugEnabled = config.EnableClothingContentsDebugLogging;
@@ -56,8 +62,15 @@ namespace FFEmqo.ModifiedItemDrop.Configuration
                 ClothingEntries = normalizedRuleSet.ClothingRules?.Count ?? 0,
                 ClothingDiscardedEntries = Math.Max(0, (rawRuleSet.ClothingRules?.Count ?? 0) - (normalizedRuleSet.ClothingRules?.Count ?? 0)),
                 DebugLoggingEnabled = config.EnableDebugLogging,
-                ClothingContentsDebugEnabled = config.EnableClothingContentsDebugLogging
+                ClothingContentsDebugEnabled = config.EnableClothingContentsDebugLogging,
+                DeathProcessingEnabled = _outcomeRuleState.DeathProcessingEnabled,
+                SafeModeReason = _outcomeRuleState.Diagnostic
             };
+
+            if (!_outcomeRuleState.DeathProcessingEnabled)
+            {
+                Logger.LogWarning("[ModifiedItemDrop] Entering safe mode: death processing is disabled because Outcome Rules are invalid. " + _outcomeRuleState.Diagnostic);
+            }
 
             LastReloadSummary = summary;
             return summary;

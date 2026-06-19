@@ -135,6 +135,12 @@ namespace FFEmqo.ModifiedItemDrop.Drop
 
             DebugLog($"HandlePlayerDying: player={player.CharacterName} ({player.CSteamID}) position={player.Position}");
 
+            if (!_configurationLoader.IsDeathProcessingEnabled)
+            {
+                LoggingHelper.LogWarning("Death processing skipped in safe mode for " + player.CSteamID + ": " + _configurationLoader.SafeModeReason);
+                return;
+            }
+
             var deathPosition = player.Position;
             var pending = new PendingRestore(deathPosition);
 
