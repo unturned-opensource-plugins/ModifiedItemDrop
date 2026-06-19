@@ -168,6 +168,7 @@ namespace FFEmqo.ModifiedItemDrop.Drop
 
             var deathPosition = player.Position;
             var pending = new PendingRestore(deathPosition);
+            DeathSession emergencyDeathSession = null;
 
             try
             {
@@ -184,6 +185,7 @@ namespace FFEmqo.ModifiedItemDrop.Drop
                         quickSlotSnapshots,
                         clothingSnapshots,
                         _configurationLoader.CurrentOutcomeRules);
+                    emergencyDeathSession = deathResult.DeathSession;
                     ExecuteV2QuickSlotPlan(
                         player.Player.inventory,
                         quickSlotSnapshots,
@@ -224,7 +226,20 @@ namespace FFEmqo.ModifiedItemDrop.Drop
             catch (Exception ex)
             {
                 LoggingHelper.LogException(ex, "HandlePlayerDying");
-                // In case of failure, ensure we do not lose items by restoring immediately.
+                if (emergencyDeathSession != null && _v2DeathSessionFinalizer != null)
+                {
+                    var result = _v2DeathSessionFinalizer.FinalizeEmergencyFailure(
+                        emergencyDeathSession,
+                        immediateRestoreAvailable: false);
+                    ExecuteFallbackDecisions(result, deathPosition);
+                    lock (_pendingRestoresLock)
+                    {
+                        _pendingRestores.Remove(player.CSteamID);
+                        _deathSessions.Remove(player.CSteamID);
+                    }
+                    return;
+                }
+
                 _restoreManager.RestoreImmediately(player, pending);
             }
         }

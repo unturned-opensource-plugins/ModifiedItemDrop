@@ -408,3 +408,19 @@ DOTNET_ROOT=/opt/homebrew/opt/dotnet@8/libexec PATH=/opt/homebrew/opt/dotnet@8/b
 Result: plugin build succeeded with `0 Warning(s), 0 Error(s)`; domain tests `Passed: 45, Failed: 0`.
 
 Review note: this wires the M5 domain finalizer into runtime disconnect/unload. If the plugin unload fallback cannot create a Durable Claim, Drop fallback currently uses the best available runtime fallback position rather than persisted death positions; if stronger positional fidelity is required, add death-position metadata to `DeathSession` in a later slice.
+
+## Slice 25 — Emergency death-processing failures finalize Death Sessions
+
+Behavior: if v2 death processing throws after a `DeathSession` has been planned, runtime now finalizes that session through `DeathSessionFinalizer.FinalizeEmergencyFailure` and executes fallback decisions before clearing in-memory state. This prevents falling back to the old pending-only restore path for already-planned v2 kept assets.
+
+Verification command:
+
+```bash
+DOTNET_ROOT=/opt/homebrew/opt/dotnet@8/libexec PATH=/opt/homebrew/opt/dotnet@8/bin:$PATH dotnet test ModifiedItemDrop.Domain.Tests/ModifiedItemDrop.Domain.Tests.csproj -v minimal
+DOTNET_ROOT=/opt/homebrew/opt/dotnet@8/libexec PATH=/opt/homebrew/opt/dotnet@8/bin:$PATH dotnet build ModifiedItemDrop.csproj -v minimal
+rg -n "FinalizeDisconnect|FinalizePluginUnload|FinalizeEmergencyFailure|FinalizeRespawnRestoreFailure|RestoreImmediately\\(" Drop Plugin -g'*.cs'
+```
+
+Result: plugin build succeeded with `0 Warning(s), 0 Error(s)`; domain tests `Passed: 45, Failed: 0`. Runtime scan shows `FinalizeDisconnect`, `FinalizePluginUnload`, and `FinalizeEmergencyFailure` wired in `DropService`; `RestoreImmediately` remains only as a fallback when a failure occurs before a v2 `DeathSession` exists.
+
+Review note: respawn restore overflow is handled through `RestorePendingItems` -> v2 Durable Claim/Drop fallback for remaining pending assets rather than directly calling `FinalizeRespawnRestoreFailure`; behavior is covered by the same Durable Claim fallback path, but this is a review note for M5 gate.
