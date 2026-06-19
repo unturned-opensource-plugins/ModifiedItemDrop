@@ -188,3 +188,8 @@ V2 uses `/mid` as the single command root. V1 flat aliases must not be reintrodu
 | n/a | `/mid diagnostics export` | Non-destructive diagnostic export; reports v2 Claim primary/backup/corrupt paths and does not reset or delete storage. |
 
 `/mid rules explain` distinguishes configured `Keep` from later runtime fallback: `Keep` means the rule decided to preserve the Player Asset; Durable Claim is only used later when immediate restore is unavailable or unsafe.
+
+
+## License and release metadata
+
+V2.0.0 uses the MIT License as the canonical project license. This resolves the v1 metadata drift where README/release notes and `LICENSE` disagreed. The v2 release workflow checks that README, `LICENSE`, project package metadata, release notes, and the release tag version stay aligned before publishing.

@@ -442,7 +442,7 @@ V2 must include an operator-facing migration guide before release. The guide mus
 
 ## Open questions
 
-- Which license will be canonical for v2: GPL or MIT?
+- Resolved by ADR 0005: v2 canonical license is MIT.
 - What exact XML shape should Outcome Rules use?
 - What exact XML shape should Inventory Capability rules use?
 - What test framework should be used for .NET Framework/RocketMod-adjacent tests?
