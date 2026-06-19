@@ -129,4 +129,24 @@ public sealed class OutcomeRuleXmlParserTests
         Assert.Contains("v2", exception.Message);
     }
 
+
+    [Fact]
+    public void RuleWithBothTargetAndTriggerIsInvalidConfiguration()
+    {
+        var xml = """
+            <OutcomeRules>
+              <Rule name="Ambiguous grant" priority="100">
+                <Target kind="Any" />
+                <Trigger kind="AfterDeathRespawn" />
+                <Outcome kind="Grant" itemId="15" amount="1" quality="100" />
+              </Rule>
+            </OutcomeRules>
+            """;
+
+        var exception = Assert.Throws<InvalidOutcomeRuleConfigurationException>(
+            () => OutcomeRuleXmlParser.Parse(xml));
+
+        Assert.Contains("either Target or Trigger", exception.Message);
+    }
+
 }

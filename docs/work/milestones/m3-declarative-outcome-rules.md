@@ -231,3 +231,19 @@ DOTNET_ROOT=/opt/homebrew/opt/dotnet@8/libexec PATH=/opt/homebrew/opt/dotnet@8/b
 Green result: `Passed: 16, Failed: 0`.
 
 Review note: this is domain parser validation. Plugin-level safe mode remains a later config integration milestone.
+
+## Slice 15 — Rule Target/Trigger shape validation
+
+Behavior: each XML `Rule` must include either `Target` or `Trigger`, but not both. Ambiguous rule shape is invalid configuration.
+
+Red: `dotnet test` failed because the parser accepted a rule containing both `Target` and `Trigger`.
+
+Green command:
+
+```bash
+DOTNET_ROOT=/opt/homebrew/opt/dotnet@8/libexec PATH=/opt/homebrew/opt/dotnet@8/bin:$PATH dotnet test ModifiedItemDrop.Domain.Tests/ModifiedItemDrop.Domain.Tests.csproj -v minimal
+```
+
+Green result: `Passed: 17, Failed: 0`.
+
+Review note: this implements the ADR 0003 design rule that a rule has either `Target` or `Trigger` depending on whether it applies to a Player Asset or event.

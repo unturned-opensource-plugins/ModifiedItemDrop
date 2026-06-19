@@ -76,6 +76,8 @@ namespace FFEmqo.ModifiedItemDrop.Domain
         {
             var name = RequiredAttribute(ruleElement, "name");
             var priority = int.Parse(RequiredAttribute(ruleElement, "priority"), CultureInfo.InvariantCulture);
+            EnsureTargetTriggerShape(ruleElement);
+
             var outcome = RequiredElement(ruleElement, "Outcome");
             var outcomeKind = RequiredAttribute(outcome, "kind");
 
@@ -104,6 +106,17 @@ namespace FFEmqo.ModifiedItemDrop.Domain
                     return OutcomeRule.Delete(name, priority, target);
                 default:
                     throw new InvalidOutcomeRuleConfigurationException("Unsupported Outcome kind '" + outcomeKind + "'.");
+            }
+        }
+
+        private static void EnsureTargetTriggerShape(XElement ruleElement)
+        {
+            var hasTarget = ruleElement.Element("Target") != null;
+            var hasTrigger = ruleElement.Element("Trigger") != null;
+            if (hasTarget == hasTrigger)
+            {
+                throw new InvalidOutcomeRuleConfigurationException(
+                    "Rule '" + RequiredAttribute(ruleElement, "name") + "' must include either Target or Trigger, but not both.");
             }
         }
 
