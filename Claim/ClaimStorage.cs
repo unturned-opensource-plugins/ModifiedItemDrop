@@ -52,7 +52,7 @@ namespace FFEmqo.ModifiedItemDrop.Claim
                     }
 
                     var loaded = JsonConvert.DeserializeObject<List<ClaimRecord>>(json);
-                    _claims = loaded ?? new List<ClaimRecord>();
+                    _claims = loaded?.Where(c => c != null).ToList() ?? new List<ClaimRecord>();
                     RebuildIndex();
                     Logger.Log($"[ModifiedItemDrop] Loaded {_claims.Count} claims from storage.");
                     _isDirty = false;
@@ -138,7 +138,7 @@ namespace FFEmqo.ModifiedItemDrop.Claim
                 _isDirty = true;
             }
 
-            Save();
+            ForceSave();
         }
 
         public void RemoveRange(IEnumerable<ClaimRecord> claimsToRemove)
@@ -164,7 +164,7 @@ namespace FFEmqo.ModifiedItemDrop.Claim
                 _isDirty = true;
             }
 
-            Save();
+            ForceSave();
         }
 
         public List<ClaimRecord> GetBySteamId(ulong steamId)
@@ -235,6 +235,11 @@ namespace FFEmqo.ModifiedItemDrop.Claim
 
         private void AddToIndex(ClaimRecord claim)
         {
+            if (claim == null)
+            {
+                return;
+            }
+
             if (!_steamIdIndex.TryGetValue(claim.SteamId, out var list))
             {
                 list = new List<ClaimRecord>();
@@ -245,6 +250,11 @@ namespace FFEmqo.ModifiedItemDrop.Claim
 
         private void RemoveFromIndex(ClaimRecord claim)
         {
+            if (claim == null)
+            {
+                return;
+            }
+
             if (_steamIdIndex.TryGetValue(claim.SteamId, out var list))
             {
                 list.Remove(claim);

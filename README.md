@@ -28,12 +28,6 @@
 - **复活时应用**：玩家死亡复活后重新应用槽位大小
 - **灵活配置**：支持自定义多个权限等级，每个等级可设置不同的宽度和高度
 
-### 🖐️ 手部槽位扩展
-- **基于权限的手部槽位大小**：根据玩家权限动态调整手部槽位大小
-- **玩家加入时应用**：玩家连接服务器时自动应用对应权限的槽位大小
-- **复活时应用**：玩家死亡复活后重新应用槽位大小
-- **灵活配置**：支持自定义多个权限等级，每个等级可设置不同的宽度和高度
-
 ### 🔧 调试与管理工具
 - **详细调试日志**：输出 `[ModifiedItemDrop::Debug]`，包含概率来源、随机数与判定结果
 - **热重载**：`/mid reload` 在不停机的情况下重新加载配置
@@ -70,7 +64,7 @@ dotnet build -c Release
     <EnableClaim>true</EnableClaim>
     <MaxClaimsPerPlayer>10</MaxClaimsPerPlayer>
     <ExpirationMinutes>1440</ExpirationMinutes>
-    <NotifyOnJoin>true</NotifyOnJoin>
+    <AutoClaimOnJoin>true</AutoClaimOnJoin>
   </ClaimSettings>
 
   <RuleSet>
@@ -100,7 +94,7 @@ dotnet build -c Release
 | `EnableClaim` | `true` | 是否启用持久化功能 |
 | `MaxClaimsPerPlayer` | `10` | 每玩家最大 Claim 数量，`0`=无限 |
 | `ExpirationMinutes` | `1440` | 过期时间(分钟)，`0`=永不过期，`1440`=24小时 |
-| `NotifyOnJoin` | `true` | 玩家上线时是否提示待领取物品 |
+| `AutoClaimOnJoin` | `true` | 玩家上线时是否自动领取待发放物品 |
 | `OverLimitBehavior` | `DeleteOldest` | 达到上限时：`DeleteOldest` / `DropToGround` |
 | `ExpirationBehavior` | `Delete` | 过期时：`Delete` / `DropAtDeathPosition` |
 
@@ -199,11 +193,9 @@ ModifiedItemDrop/
 ### 概率优先级系统
 
 **武器槽（Page 0-2）优先级（从高到低）：**
-1. 临时物品覆盖 (`/mid set item`)
-2. 临时分区覆盖 (`/mid set region`)
-3. 配置中的 ItemID 特定概率 (`CustomItemChances`)
-4. 配置中的分区概率 (`RegionChances`)
-5. 全局默认概率 (`GlobalDefaultChance`)
+1. 配置中的 ItemID 特定概率 (`CustomItemChances`)
+2. 配置中的分区概率 (`RegionChances`)
+3. 全局默认概率 (`GlobalDefaultChance`)
 
 **衣物内容物（Page 3-6）处理方式：**
 - 完全由 `ClothingRules` 控制

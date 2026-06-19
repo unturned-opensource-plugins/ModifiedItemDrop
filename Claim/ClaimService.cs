@@ -190,8 +190,9 @@ namespace FFEmqo.ModifiedItemDrop.Claim
                 return false;
             }
 
+            EnsureClaimLists(claim);
             var restoredItems = RestoreItemsAndPrune(player, claim.Items);
-            var restoredClothing = RestoreClothing(player, claim.Clothing);
+            var restoredClothing = RestoreClothing(player, claim.Clothing, claim.Items);
 
             itemsRestored = restoredItems;
             clothingRestored = restoredClothing;
@@ -233,11 +234,14 @@ namespace FFEmqo.ModifiedItemDrop.Claim
 
             foreach (var claim in claims)
             {
-                var itemsBefore = claim.Items?.Count ?? 0;
-                var clothingBefore = claim.Clothing?.Count ?? 0;
+                if (claim == null)
+                {
+                    continue;
+                }
 
+                EnsureClaimLists(claim);
                 var restoredItems = RestoreItemsAndPrune(player, claim.Items);
-                var restoredClothing = RestoreClothing(player, claim.Clothing);
+                var restoredClothing = RestoreClothing(player, claim.Clothing, claim.Items);
 
                 if (restoredItems > 0 || restoredClothing > 0)
                 {
@@ -264,6 +268,24 @@ namespace FFEmqo.ModifiedItemDrop.Claim
             }
 
             return claimCount > 0;
+        }
+
+        private static void EnsureClaimLists(ClaimRecord claim)
+        {
+            if (claim == null)
+            {
+                return;
+            }
+
+            if (claim.Items == null)
+            {
+                claim.Items = new List<ClaimItem>();
+            }
+
+            if (claim.Clothing == null)
+            {
+                claim.Clothing = new List<ClaimClothing>();
+            }
         }
 
         public List<(ClaimRecord claim, int itemCount, int clothingCount)> GetClaimsSummary(ulong steamId)
@@ -347,6 +369,12 @@ namespace FFEmqo.ModifiedItemDrop.Claim
             for (int i = items.Count - 1; i >= 0; i--)
             {
                 var claimItem = items[i];
+                if (claimItem == null || claimItem.ItemId == 0)
+                {
+                    items.RemoveAt(i);
+                    continue;
+                }
+
                 var item = new Item(claimItem.ItemId, claimItem.Amount, claimItem.Quality, claimItem.State ?? Array.Empty<byte>());
                 if (inventory.tryAddItem(item, true))
                 {
@@ -358,7 +386,12 @@ namespace FFEmqo.ModifiedItemDrop.Claim
             return restored;
         }
 
-        private int RestoreClothing(UnturnedPlayer player, List<ClaimClothing> clothing)
+        /// <summary>
+        /// Restores clothing and removes successfully restored clothing records from the claim.
+        /// If clothing contents cannot fit back into the clothing container, they are preserved as
+        /// normal claim items so a later /mid claim can still recover them.
+        /// </summary>
+        private int RestoreClothing(UnturnedPlayer player, List<ClaimClothing> clothing, List<ClaimItem> fallbackItems)
         {
             if (clothing == null || clothing.Count == 0)
             {
@@ -372,8 +405,15 @@ namespace FFEmqo.ModifiedItemDrop.Claim
             }
 
             var restored = 0;
-            foreach (var claimClothing in clothing)
+            for (int i = clothing.Count - 1; i >= 0; i--)
             {
+                var claimClothing = clothing[i];
+                if (claimClothing == null || claimClothing.ItemId == 0)
+                {
+                    clothing.RemoveAt(i);
+                    continue;
+                }
+
                 var state = claimClothing.State ?? Array.Empty<byte>();
                 var equipped = TryWearClothing(playerClothing, claimClothing.Slot, claimClothing.ItemId, claimClothing.Quality, state);
                 if (equipped)
@@ -389,14 +429,42 @@ namespace FFEmqo.ModifiedItemDrop.Claim
                             foreach (var contentItem in claimClothing.Contents)
                             {
                                 var item = new Item(contentItem.ItemId, contentItem.Amount, contentItem.Quality, contentItem.State ?? Array.Empty<byte>());
-                                container.tryAddItem(item, true);
+                                if (!container.tryAddItem(item, true))
+                                {
+                                    PreserveFailedClothingContent(fallbackItems, contentItem);
+                                }
+                            }
+                        }
+                        else
+                        {
+                            foreach (var contentItem in claimClothing.Contents)
+                            {
+                                PreserveFailedClothingContent(fallbackItems, contentItem);
                             }
                         }
                     }
+
+                    clothing.RemoveAt(i);
                 }
             }
 
             return restored;
+        }
+
+        private static void PreserveFailedClothingContent(List<ClaimItem> fallbackItems, ClaimItem contentItem)
+        {
+            if (fallbackItems == null || contentItem == null || contentItem.ItemId == 0)
+            {
+                return;
+            }
+
+            fallbackItems.Add(new ClaimItem
+            {
+                ItemId = contentItem.ItemId,
+                Amount = contentItem.Amount,
+                Quality = contentItem.Quality,
+                State = contentItem.State != null ? (byte[])contentItem.State.Clone() : Array.Empty<byte>()
+            });
         }
 
         private bool TryWearClothing(PlayerClothing clothing, SlotType slot, ushort itemId, byte quality, byte[] state)
@@ -426,8 +494,29 @@ namespace FFEmqo.ModifiedItemDrop.Claim
             {
                 foreach (var claimClothing in claim.Clothing)
                 {
+                    if (claimClothing == null || claimClothing.ItemId == 0)
+                    {
+                        continue;
+                    }
+
                     var item = new Item(claimClothing.ItemId, 1, claimClothing.Quality, claimClothing.State ?? Array.Empty<byte>());
                     ItemManager.dropItem(item, dropPosition, false, true, true);
+
+                    if (claimClothing.Contents == null)
+                    {
+                        continue;
+                    }
+
+                    foreach (var contentItem in claimClothing.Contents)
+                    {
+                        if (contentItem == null || contentItem.ItemId == 0)
+                        {
+                            continue;
+                        }
+
+                        var content = new Item(contentItem.ItemId, contentItem.Amount, contentItem.Quality, contentItem.State ?? Array.Empty<byte>());
+                        ItemManager.dropItem(content, dropPosition, false, true, true);
+                    }
                 }
             }
         }

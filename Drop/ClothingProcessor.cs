@@ -16,6 +16,7 @@ namespace FFEmqo.ModifiedItemDrop.Drop
     /// </summary>
     public sealed class ClothingProcessor
     {
+        private const byte AnyInventoryPage = byte.MaxValue;
         private readonly ConfigurationLoader _configurationLoader;
         private readonly Func<System.Random> _randomProvider;
         private readonly InventoryProcessor _inventoryProcessor;
@@ -58,7 +59,7 @@ namespace FFEmqo.ModifiedItemDrop.Drop
                 }
                 else
                 {
-                    pending.ClothingItems.Add(snapshot);
+                    pending.ClothingItems.Add(BuildKeptClothingSnapshot(snapshot, pending));
                     DebugLog($"✓ {snapshot.SlotType}: id={snapshot.Item.id} ({roll:P0} > {chance:P0})");
                 }
             }
@@ -76,12 +77,23 @@ namespace FFEmqo.ModifiedItemDrop.Drop
             }
 
             var restored = 0;
-            var listCopy = new List<ClothingItemSnapshot>(pending.ClothingItems);
-            foreach (var snap in listCopy)
+            for (int i = pending.ClothingItems.Count - 1; i >= 0; i--)
             {
+                var snap = pending.ClothingItems[i];
+                if (snap?.Item == null || snap.Item.id == 0)
+                {
+                    pending.ClothingItems.RemoveAt(i);
+                    continue;
+                }
+
                 var state = snap.Item.state ?? Array.Empty<byte>();
                 var stateStr = state.Length > 0 ? $"state[{state.Length}]" : "state[]";
-                ClothingOperationHelper.WearClothingItem(clothing, snap.SlotType, snap.Item.id, snap.Item.quality, state);
+                if (!ClothingOperationHelper.TryWearClothing(clothing, snap.SlotType, snap.Item.id, snap.Item.quality, state))
+                {
+                    DebugLog($"Deferred clothing {snap.SlotType}: id={snap.Item.id} because slot is occupied.");
+                    continue;
+                }
+
                 restored++;
                 DebugLog($"Restored clothing {snap.SlotType}: id={snap.Item.id} {stateStr}");
 
@@ -91,25 +103,59 @@ namespace FFEmqo.ModifiedItemDrop.Drop
                     var container = PlayerExtensions.GetClothingContainer(clothing, snap.SlotType);
                     if (container != null)
                     {
-                        var contentCount = 0;
                         foreach (var item in contents)
                         {
+                            if (item == null || item.id == 0)
+                            {
+                                continue;
+                            }
+
                             var clone = UtilityHelper.CloneItem(item);
-                            container.tryAddItem(clone, true);
-                            contentCount++;
+                            if (!container.tryAddItem(clone, true))
+                            {
+                                pending.InventoryItems.Add(new PendingInventoryItem(UtilityHelper.CloneItem(item), AnyInventoryPage));
+                            }
                         }
                     }
+                    else
+                    {
+                        foreach (var item in contents)
+                        {
+                            if (item == null || item.id == 0)
+                            {
+                                continue;
+                            }
+
+                            pending.InventoryItems.Add(new PendingInventoryItem(UtilityHelper.CloneItem(item), AnyInventoryPage));
+                        }
+                    }
+
                     pending.ClothingContentsToRestore.Remove(snap.SlotType);
                 }
+
+                pending.ClothingItems.RemoveAt(i);
             }
 
             if (restored > 0)
             {
-                pending.ClothingItems.Clear();
                 DebugLog($"Restored {restored} clothing items.");
             }
 
             return restored > 0;
+        }
+
+        private static ClothingItemSnapshot BuildKeptClothingSnapshot(ClothingItemSnapshot original, PendingRestore pending)
+        {
+            var keptContents = new List<ClothingContentSnapshot>();
+            if (pending.ClothingContentsToRestore.TryGetValue(original.SlotType, out var contents))
+            {
+                for (var i = 0; i < contents.Count; i++)
+                {
+                    keptContents.Add(new ClothingContentSnapshot((byte)i, UtilityHelper.CloneItem(contents[i])));
+                }
+            }
+
+            return new ClothingItemSnapshot(original.SlotType, UtilityHelper.CloneItem(original.Item), keptContents);
         }
 
         private void DebugLog(string message)

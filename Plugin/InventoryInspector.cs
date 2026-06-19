@@ -36,7 +36,7 @@ namespace FFEmqo.ModifiedItemDrop.Plugin
                 // ignore preview errors
             }
 
-            var inventory = target.CaptureInventory();
+            var inventory = target.CaptureInventory().Where(s => s.Page <= 2).ToList();
             if (inventory.Count == 0)
             {
                 lines.Add("Inventory: (empty)");

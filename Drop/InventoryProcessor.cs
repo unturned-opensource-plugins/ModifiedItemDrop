@@ -45,13 +45,16 @@ namespace FFEmqo.ModifiedItemDrop.Drop
             }
 
             // Process per page in reverse order to keep indexes valid.
-            // Skip pages 3-6 (clothing storage) because they are handled by HandleClothingContents.
+            // Only pages 0-2 are player quick slots. Clothing storage and external storage pages
+            // are handled elsewhere or must not be touched.
             var groupedByPage = new Dictionary<byte, List<InventoryItemSnapshot>>();
 
             foreach (var snapshot in snapshots)
             {
-                // Skip clothing storage pages (3=backpack, 4=vest, 5=shirt, 6=pants).
-                if (snapshot.Page >= 3 && snapshot.Page <= 6)
+                // Only player-carried quick slots are handled here.
+                // Clothing storage pages are handled by HandleClothingContents, and higher pages
+                // may represent external storage/area containers that must not be modified on death.
+                if (snapshot.Page > 2)
                 {
                     continue;
                 }
@@ -283,4 +286,3 @@ namespace FFEmqo.ModifiedItemDrop.Drop
         }
     }
 }
-

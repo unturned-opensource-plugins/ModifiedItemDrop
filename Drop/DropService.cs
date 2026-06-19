@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using FFEmqo.ModifiedItemDrop.Claim;
 using FFEmqo.ModifiedItemDrop.Configuration;
 using FFEmqo.ModifiedItemDrop.Models;
@@ -195,16 +194,13 @@ namespace FFEmqo.ModifiedItemDrop.Drop
                 _pendingRestores.Remove(player.CSteamID);
             }
 
-            // Save pending items to persistent claim storage instead of forcing restore
-            if (_claimService != null && !pending.IsEmpty)
+            if (!pending.IsEmpty)
             {
                 var steamId = (ulong)player.CSteamID;
-                _claimService.AddClaim(steamId, pending.DeathPosition, pending.InventoryItems.Select(x => x.Item).ToList(), pending.ClothingItems);
-                DebugLog($"Player {player.CharacterName} disconnected, saved {pending.InventoryItems.Count} items and {pending.ClothingItems.Count} clothing to claim storage.");
-            }
-            else
-            {
-                _restoreManager.RestoreImmediately(player, pending);
+                var saved = _restoreManager.SavePendingToClaimOrDrop(steamId, pending);
+                DebugLog(saved
+                    ? $"Player {player.CharacterName} disconnected, saved {pending.InventoryItems.Count} items and {pending.ClothingItems.Count} clothing to claim storage."
+                    : $"Player {player.CharacterName} disconnected, dropped pending items because claim storage is unavailable or disabled.");
             }
         }
 
@@ -233,11 +229,6 @@ namespace FFEmqo.ModifiedItemDrop.Drop
         /// </summary>
         public void FlushPendingRestores()
         {
-            if (_claimService == null)
-            {
-                return;
-            }
-
             List<KeyValuePair<CSteamID, PendingRestore>> snapshot;
             lock (_pendingRestoresLock)
             {
@@ -254,7 +245,7 @@ namespace FFEmqo.ModifiedItemDrop.Drop
                 var pending = kvp.Value;
                 if (!pending.IsEmpty)
                 {
-                    _claimService.AddClaim((ulong)kvp.Key, pending.DeathPosition, pending.InventoryItems.Select(x => x.Item).ToList(), pending.ClothingItems);
+                    _restoreManager.SavePendingToClaimOrDrop((ulong)kvp.Key, pending);
                 }
             }
 
@@ -312,9 +303,11 @@ namespace FFEmqo.ModifiedItemDrop.Drop
                 var handsPage = player.Player.inventory.items[2];
                 if (handsPage != null)
                 {
-                    handsPage.resize(matchedConfig.Width, matchedConfig.Height);
+                    var width = ClampHandsSlotDimension(matchedConfig.Width);
+                    var height = ClampHandsSlotDimension(matchedConfig.Height);
+                    handsPage.resize(width, height);
                     player.Player.inventory.save();
-                    DebugLog($"Applied hands slot size {matchedConfig.Width}x{matchedConfig.Height} for player {player.CharacterName} (permission: {matchedConfig.PermissionName})");
+                    DebugLog($"Applied hands slot size {width}x{height} for player {player.CharacterName} (permission: {matchedConfig.PermissionName})");
                 }
             }
             catch (Exception ex)
@@ -339,6 +332,21 @@ namespace FFEmqo.ModifiedItemDrop.Drop
             {
                 // Ignore and continue; equipment might already be unequipped.
             }
+        }
+
+        private static byte ClampHandsSlotDimension(byte value)
+        {
+            if (value < 1)
+            {
+                return 1;
+            }
+
+            if (value > 12)
+            {
+                return 12;
+            }
+
+            return value;
         }
 
     }

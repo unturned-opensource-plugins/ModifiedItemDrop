@@ -40,35 +40,128 @@ namespace FFEmqo.ModifiedItemDrop.Drop
                 return;
             }
 
-            var inventoryRestored = _inventoryProcessor.RestoreInventory(player, pending);
-            var clothingRestored = _clothingProcessor.RestoreClothing(player, pending);
+            _inventoryProcessor.RestoreInventory(player, pending);
+            _clothingProcessor.RestoreClothing(player, pending);
 
             GiveRespawnItems(player);
-
-            // Clear any remaining clothing contents (should not happen since clothing contents drop with clothing)
-            pending.ClothingContentsToRestore.Clear();
 
             if (pending.IsEmpty)
             {
                 return;
             }
 
-            // Save remaining items to persistent claim storage
-            if (_claimService != null)
+            var saved = SavePendingToClaimOrDrop((ulong)player.CSteamID, pending);
+            if (saved)
             {
-                var steamId = (ulong)player.CSteamID;
-                var remainingItems = pending.InventoryItems.Select(x => x.Item).ToList();
-                var remainingClothing = pending.ClothingItems;
-                var claim = _claimService.AddClaim(steamId, pending.DeathPosition, remainingItems, remainingClothing);
-
-                if (claim != null)
-                {
-                    UtilityHelper.TryNotify(player, $"有 {pending.InventoryItems.Count + pending.ClothingItems.Count} 个物品已保存，使用 /mid claim 领取。");
-                }
+                UtilityHelper.TryNotify(player, $"有 {pending.InventoryItems.Count + pending.ClothingItems.Count} 个物品已保存，使用 /mid claim 领取。");
             }
             else
             {
-                UtilityHelper.TryNotify(player, $"有 {pending.InventoryItems.Count} 个物品未能放入背包，使用 /mid claim 以稍后领取。");
+                UtilityHelper.TryNotify(player, "部分物品无法放入背包且 Claim 不可用，已掉落到死亡位置。");
+            }
+        }
+
+        public bool SavePendingToClaimOrDrop(ulong steamId, PendingRestore pending)
+        {
+            if (pending == null || pending.IsEmpty)
+            {
+                return false;
+            }
+
+            if (_claimService != null)
+            {
+                var remainingClothingSlots = new HashSet<SlotType>(
+                    pending.ClothingItems
+                        .Where(x => x?.Item != null && x.Item.id != 0)
+                        .Select(x => x.SlotType));
+                var remainingItems = pending.InventoryItems
+                    .Where(x => x?.Item != null && x.Item.id != 0)
+                    .Select(x => x.Item)
+                    .ToList();
+
+                foreach (var pair in pending.ClothingContentsToRestore)
+                {
+                    if (remainingClothingSlots.Contains(pair.Key) || pair.Value == null)
+                    {
+                        continue;
+                    }
+
+                    foreach (var item in pair.Value)
+                    {
+                        if (item != null && item.id != 0)
+                        {
+                            remainingItems.Add(item);
+                        }
+                    }
+                }
+
+                var remainingClothing = pending.ClothingItems;
+                var claim = _claimService.AddClaim(steamId, pending.DeathPosition, remainingItems, remainingClothing);
+                if (claim != null)
+                {
+                    return true;
+                }
+            }
+
+            DropPendingToGround(pending);
+            return false;
+        }
+
+        public void DropPendingToGround(PendingRestore pending)
+        {
+            if (pending == null)
+            {
+                return;
+            }
+
+            var slotsWithClothing = new HashSet<SlotType>();
+
+            foreach (var pendingItem in pending.InventoryItems)
+            {
+                if (pendingItem?.Item != null && pendingItem.Item.id != 0)
+                {
+                    UtilityHelper.DropWorldItem(pendingItem.Item, pending.DeathPosition);
+                }
+            }
+
+            foreach (var clothing in pending.ClothingItems)
+            {
+                if (clothing?.Item == null || clothing.Item.id == 0)
+                {
+                    continue;
+                }
+
+                slotsWithClothing.Add(clothing.SlotType);
+                UtilityHelper.DropWorldItem(clothing.Item, pending.DeathPosition);
+
+                if (clothing.Contents == null)
+                {
+                    continue;
+                }
+
+                foreach (var content in clothing.Contents)
+                {
+                    if (content?.Item != null && content.Item.id != 0)
+                    {
+                        UtilityHelper.DropWorldItem(content.Item, pending.DeathPosition);
+                    }
+                }
+            }
+
+            foreach (var pair in pending.ClothingContentsToRestore)
+            {
+                if (slotsWithClothing.Contains(pair.Key) || pair.Value == null)
+                {
+                    continue;
+                }
+
+                foreach (var item in pair.Value)
+                {
+                    if (item != null && item.id != 0)
+                    {
+                        UtilityHelper.DropWorldItem(item, pending.DeathPosition);
+                    }
+                }
             }
         }
 
@@ -168,11 +261,21 @@ namespace FFEmqo.ModifiedItemDrop.Drop
                 LoggingHelper.LogDebug($"Gave respawn item: id={respawnItem.ItemID} x{respawnItem.Amount}", _configurationLoader?.IsDebugLoggingEnabled ?? false);
             }
 
-            if (failedItems.Count > 0 && _claimService != null)
+            if (failedItems.Count > 0)
             {
-                var steamId = (ulong)player.CSteamID;
-                _claimService.AddClaim(steamId, player.Position, failedItems, null);
-                UtilityHelper.TryNotify(player, $"有 {failedItems.Count} 个复活物品空间不足，已存入待领取，使用 /mid claim 领取。");
+                var claim = _claimService?.AddClaim((ulong)player.CSteamID, player.Position, failedItems, null);
+                if (claim != null)
+                {
+                    UtilityHelper.TryNotify(player, $"有 {failedItems.Count} 个复活物品空间不足，已存入待领取，使用 /mid claim 领取。");
+                }
+                else
+                {
+                    foreach (var item in failedItems)
+                    {
+                        UtilityHelper.DropWorldItem(item, player.Position);
+                    }
+                    UtilityHelper.TryNotify(player, $"{failedItems.Count} 个复活物品空间不足且 Claim 不可用，已掉落在当前位置。");
+                }
             }
         }
 
