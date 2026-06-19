@@ -28,4 +28,29 @@ public sealed class OutcomeRuleXmlParserTests
         Assert.Equal(PlayerAssetOutcomeKind.Drop, outcome.Kind);
         Assert.Equal("Primary weapon drop", outcome.Rule.Name);
     }
+
+    [Fact]
+    public void NestedXmlItemTargetCanDeleteMatchingItem()
+    {
+        var xml = """
+            <OutcomeRules>
+              <Rule name="Delete banned item" priority="2000">
+                <Target kind="Item" itemId="95" />
+                <Outcome kind="Delete" />
+              </Rule>
+              <Rule name="Default keep" priority="0">
+                <Target kind="Any" />
+                <Outcome kind="Keep" />
+              </Rule>
+            </OutcomeRules>
+            """;
+        var asset = new PlayerAsset("banned", PlayerAssetSlot.SecondaryWeapon, itemId: 95);
+
+        var rules = OutcomeRuleXmlParser.Parse(xml);
+        var outcome = new DeathOutcomePlanner().Plan(asset, rules);
+
+        Assert.Equal(PlayerAssetOutcomeKind.Delete, outcome.Kind);
+        Assert.Equal("Delete banned item", outcome.Rule.Name);
+    }
+
 }

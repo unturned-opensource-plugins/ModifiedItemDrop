@@ -40,6 +40,8 @@ namespace FFEmqo.ModifiedItemDrop.Domain
                     return OutcomeRule.Drop(name, priority, target, chance);
                 case "Keep":
                     return OutcomeRule.Keep(name, priority, target, chance);
+                case "Delete":
+                    return OutcomeRule.Delete(name, priority, target);
                 default:
                     throw new InvalidOutcomeRuleConfigurationException("Unsupported Outcome kind '" + outcomeKind + "'.");
             }
@@ -54,9 +56,21 @@ namespace FFEmqo.ModifiedItemDrop.Domain
                     return OutcomeTarget.Any();
                 case "Slot":
                     return OutcomeTarget.ForSlot(ParseSlot(RequiredAttribute(targetElement, "slot")));
+                case "Item":
+                    return OutcomeTarget.ForItem(ParseUShort(RequiredAttribute(targetElement, "itemId"), "itemId"));
                 default:
                     throw new InvalidOutcomeRuleConfigurationException("Unsupported Target kind '" + kind + "'.");
             }
+        }
+
+        private static ushort ParseUShort(string value, string attributeName)
+        {
+            if (ushort.TryParse(value, NumberStyles.None, CultureInfo.InvariantCulture, out var parsed))
+            {
+                return parsed;
+            }
+
+            throw new InvalidOutcomeRuleConfigurationException("Attribute " + attributeName + " must be an unsigned 16-bit integer.");
         }
 
         private static PlayerAssetSlot ParseSlot(string value)

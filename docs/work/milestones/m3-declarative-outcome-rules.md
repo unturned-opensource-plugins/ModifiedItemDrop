@@ -91,3 +91,19 @@ DOTNET_ROOT=/opt/homebrew/opt/dotnet@8/libexec PATH=/opt/homebrew/opt/dotnet@8/b
 Green result: `Passed: 7, Failed: 0`.
 
 Review note: parser remains in the pure domain layer and produces `OutcomeRule` objects; plugin config loading is still a later adapter step.
+
+## Slice 6 — XML item target with Delete outcome
+
+Behavior: a nested XML rule can target a specific `itemId` and produce a configured `Delete` outcome.
+
+Red: `dotnet test` failed because the parser rejected `Target kind="Item"`.
+
+Green command:
+
+```bash
+DOTNET_ROOT=/opt/homebrew/opt/dotnet@8/libexec PATH=/opt/homebrew/opt/dotnet@8/bin:$PATH dotnet test ModifiedItemDrop.Domain.Tests/ModifiedItemDrop.Domain.Tests.csproj -v minimal
+```
+
+Green result: `Passed: 8, Failed: 0`.
+
+Review note: this is the domain-level equivalent of v1 `DeleteOnDeathItems`; migration docs still need an explicit example later in M3.
