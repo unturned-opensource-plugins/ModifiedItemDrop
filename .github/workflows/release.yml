@@ -80,6 +80,7 @@ jobs:
       run: |
         New-Item -ItemType Directory -Force -Path "release" | Out-Null
         Copy-Item "bin\Release\net48\ModifiedItemDrop.dll" -Destination "release\" -Force
+        Copy-Item "bin\Release\net48\ModifiedItemDrop.Domain.dll" -Destination "release\" -Force
         Copy-Item "ModifiedItemDrop.configuration.xml" -Destination "release\" -Force
         Copy-Item "README.md" -Destination "release\" -Force
         Copy-Item "LICENSE" -Destination "release\" -Force
