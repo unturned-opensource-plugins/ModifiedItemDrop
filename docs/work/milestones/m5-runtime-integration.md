@@ -332,3 +332,18 @@ DOTNET_ROOT=/opt/homebrew/opt/dotnet@8/libexec PATH=/opt/homebrew/opt/dotnet@8/b
 Result: plugin build succeeded with `0 Warning(s), 0 Error(s)`; domain tests `Passed: 44, Failed: 0`.
 
 Review note: plugin load now checks v2 Claim storage health once, wires disabled Claim Recovery with a diagnostic reason when degraded, and prevents death processing through `DropService.SetClaimStorageHealth`. Legacy diagnostics/config commands remain outside this guard.
+
+## Slice 20 — Diagnostics expose safe/degraded runtime state
+
+Behavior: operators can see whether v2 Outcome Rules safe mode or Claim storage degraded mode is active from command feedback, not only server logs. Reload feedback reports death-processing safe-mode state; `/mid status` reports Outcome Rules validity, Claim storage health, and Claim Recovery availability.
+
+Verification command:
+
+```bash
+DOTNET_ROOT=/opt/homebrew/opt/dotnet@8/libexec PATH=/opt/homebrew/opt/dotnet@8/bin:$PATH dotnet test ModifiedItemDrop.Domain.Tests/ModifiedItemDrop.Domain.Tests.csproj -v minimal
+DOTNET_ROOT=/opt/homebrew/opt/dotnet@8/libexec PATH=/opt/homebrew/opt/dotnet@8/bin:$PATH dotnet build ModifiedItemDrop.csproj -v minimal
+```
+
+Result: plugin build succeeded with `0 Warning(s), 0 Error(s)`; domain tests `Passed: 44, Failed: 0`.
+
+Review note: this is a temporary M5 diagnostics bridge on the existing `/mid` command. M6 must still replace the v1 flat command surface with the accepted v2 grouped commands and remove v1 aliases before release.

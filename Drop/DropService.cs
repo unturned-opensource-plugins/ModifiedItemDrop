@@ -79,6 +79,12 @@ namespace FFEmqo.ModifiedItemDrop.Drop
             _claimStorageDisabledReason = disabledReason ?? string.Empty;
         }
 
+        public bool IsClaimStorageDeathProcessingEnabled => _claimStorageDeathProcessingEnabled;
+
+        public string ClaimStorageDisabledReason => _claimStorageDisabledReason;
+
+        public bool IsV2ClaimRecoveryEnabled => _v2ClaimRecoveryService == null || _v2ClaimRecoveryService.RecoveryEnabled;
+
         public void RefreshRules()
         {
             _chanceResolver.UpdateRuleSet(_configurationLoader.CurrentRuleSet);

@@ -17,7 +17,7 @@ namespace FFEmqo.ModifiedItemDrop.Plugin
 
         public string Help => "ModifiedItemDrop command suite.";
 
-        public string Syntax => "<reload|preview|dump|claim>";
+        public string Syntax => "<reload|preview|dump|claim|status>";
 
         public List<string> Aliases => new List<string> { "modifieditemdrop" };
 
@@ -25,7 +25,8 @@ namespace FFEmqo.ModifiedItemDrop.Plugin
         {
             "modifieditemdrop.reload",
             "modifieditemdrop.preview",
-            "modifieditemdrop.claim"
+            "modifieditemdrop.claim",
+            "modifieditemdrop.status"
         };
 
         public void Execute(IRocketPlayer caller, string[] command)
@@ -52,6 +53,9 @@ namespace FFEmqo.ModifiedItemDrop.Plugin
                     break;
                 case "claim":
                     HandleClaim(caller);
+                    break;
+                case "status":
+                    HandleStatus(caller);
                     break;
                 default:
                     SendUsage(caller);
@@ -83,6 +87,7 @@ namespace FFEmqo.ModifiedItemDrop.Plugin
                     sb.Append($" Custom items: {summary.CustomItemEntries} (discarded {summary.CustomItemDiscardedEntries}).");
                     sb.Append($" Clothing rules: {summary.ClothingEntries} (discarded {summary.ClothingDiscardedEntries}).");
                     sb.Append($" Debug={summary.DebugLoggingEnabled} ContentsDebug={summary.ClothingContentsDebugEnabled}.");
+                    sb.Append(summary.DeathProcessingEnabled ? " DeathProcessing=enabled." : $" DeathProcessing=disabled: {summary.SafeModeReason}");
                     if (summary.UsedDefaults)
                     {
                         sb.Append(" (RuleSet missing in config, loaded defaults.)");
@@ -174,6 +179,36 @@ namespace FFEmqo.ModifiedItemDrop.Plugin
             dropService.ClaimPending(player);
         }
 
+        private static void HandleStatus(IRocketPlayer caller)
+        {
+            if (!HasPermission(caller, "modifieditemdrop.status") && !HasPermission(caller, "modifieditemdrop.reload"))
+            {
+                SendMessage(caller, "You do not have permission to view ModifiedItemDrop status.", Color.red);
+                return;
+            }
+
+            var plugin = ModifiedItemDropPlugin.Instance;
+            var loader = plugin?.ConfigurationLoader;
+            var dropService = plugin?.DropService;
+            if (plugin == null || loader == null || dropService == null)
+            {
+                SendMessage(caller, "ModifiedItemDrop is not ready.", Color.red);
+                return;
+            }
+
+            SendMessage(caller, loader.IsDeathProcessingEnabled
+                ? "Outcome Rules: valid; death processing enabled."
+                : $"Outcome Rules: invalid; safe mode active. {loader.SafeModeReason}", loader.IsDeathProcessingEnabled ? Color.green : Color.yellow);
+
+            SendMessage(caller, dropService.IsClaimStorageDeathProcessingEnabled
+                ? "Claim storage: healthy for death processing."
+                : $"Claim storage: degraded; death processing disabled. {dropService.ClaimStorageDisabledReason}", dropService.IsClaimStorageDeathProcessingEnabled ? Color.green : Color.red);
+
+            SendMessage(caller, dropService.IsV2ClaimRecoveryEnabled
+                ? "Claim Recovery: enabled."
+                : "Claim Recovery: disabled by Claim storage degraded mode.", dropService.IsV2ClaimRecoveryEnabled ? Color.green : Color.red);
+        }
+
         private static UnturnedPlayer ResolveTarget(IRocketPlayer caller, string[] args, string subCommand)
         {
             if (args.Length == 0)
@@ -197,7 +232,7 @@ namespace FFEmqo.ModifiedItemDrop.Plugin
 
         private static void SendUsage(IRocketPlayer caller)
         {
-            SendMessage(caller, "Usage: /mid reload | /mid preview [player] | /mid dump [player] | /mid claim", Color.yellow);
+            SendMessage(caller, "Usage: /mid reload | /mid preview [player] | /mid dump [player] | /mid claim | /mid status", Color.yellow);
         }
 
         private static void SendMessage(IRocketPlayer caller, string message, Color color)
