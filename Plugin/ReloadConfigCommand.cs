@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using FFEmqo.ModifiedItemDrop.Domain;
 using Rocket.API;
 using Rocket.Unturned.Chat;
 using Rocket.Unturned.Player;
@@ -17,16 +18,17 @@ namespace FFEmqo.ModifiedItemDrop.Plugin
 
         public string Help => "ModifiedItemDrop command suite.";
 
-        public string Syntax => "<reload|preview|dump|claim|status>";
+        public string Syntax => "<config|rules|inventory|claims|diagnostics>";
 
-        public List<string> Aliases => new List<string> { "modifieditemdrop" };
+        public List<string> Aliases => new List<string>();
 
         public List<string> Permissions => new List<string>
         {
-            "modifieditemdrop.reload",
-            "modifieditemdrop.preview",
-            "modifieditemdrop.claim",
-            "modifieditemdrop.status"
+            "modifieditemdrop.config.reload",
+            "modifieditemdrop.rules.preview",
+            "modifieditemdrop.inventory.dump",
+            "modifieditemdrop.claims.recover",
+            "modifieditemdrop.diagnostics.status"
         };
 
         public void Execute(IRocketPlayer caller, string[] command)
@@ -37,24 +39,28 @@ namespace FFEmqo.ModifiedItemDrop.Plugin
                 return;
             }
 
-            var subCommand = command[0].ToLowerInvariant();
-            var args = command.Skip(1).ToArray();
-
-            switch (subCommand)
+            var route = MidCommandRouter.Parse(command);
+            if (!route.Accepted)
             {
-                case "reload":
+                SendMessage(caller, route.Message, Color.yellow);
+                return;
+            }
+
+            switch (route.Kind)
+            {
+                case MidCommandRouteKind.ConfigReload:
                     HandleReload(caller);
                     break;
-                case "preview":
-                    HandlePreview(caller, args);
+                case MidCommandRouteKind.RulesPreview:
+                    HandlePreview(caller, route.Arguments.ToArray());
                     break;
-                case "dump":
-                    HandleDump(caller, args);
+                case MidCommandRouteKind.InventoryDump:
+                    HandleDump(caller, route.Arguments.ToArray());
                     break;
-                case "claim":
-                    HandleClaim(caller);
+                case MidCommandRouteKind.ClaimsRecover:
+                    HandleClaim(caller, route.Arguments.ToArray());
                     break;
-                case "status":
+                case MidCommandRouteKind.DiagnosticsStatus:
                     HandleStatus(caller);
                     break;
                 default:
@@ -65,7 +71,7 @@ namespace FFEmqo.ModifiedItemDrop.Plugin
 
         private static void HandleReload(IRocketPlayer caller)
         {
-            if (!HasPermission(caller, "modifieditemdrop.reload"))
+            if (!HasPermission(caller, "modifieditemdrop.config.reload"))
             {
                 SendMessage(caller, "You do not have permission to reload ModifiedItemDrop.", Color.red);
                 return;
@@ -108,7 +114,7 @@ namespace FFEmqo.ModifiedItemDrop.Plugin
 
         private static void HandlePreview(IRocketPlayer caller, string[] args)
         {
-            if (!HasPermission(caller, "modifieditemdrop.preview"))
+            if (!HasPermission(caller, "modifieditemdrop.rules.preview"))
             {
                 SendMessage(caller, "You do not have permission to preview drop chances.", Color.red);
                 return;
@@ -136,7 +142,7 @@ namespace FFEmqo.ModifiedItemDrop.Plugin
 
         private static void HandleDump(IRocketPlayer caller, string[] args)
         {
-            if (!HasPermission(caller, "modifieditemdrop.preview"))
+            if (!HasPermission(caller, "modifieditemdrop.inventory.dump"))
             {
                 SendMessage(caller, "You do not have permission to dump inventory.", Color.red);
                 return;
@@ -154,9 +160,9 @@ namespace FFEmqo.ModifiedItemDrop.Plugin
             }
         }
 
-        private static void HandleClaim(IRocketPlayer caller)
+        private static void HandleClaim(IRocketPlayer caller, string[] args)
         {
-            if (!HasPermission(caller, "modifieditemdrop.claim"))
+            if (!HasPermission(caller, "modifieditemdrop.claims.recover"))
             {
                 SendMessage(caller, "You do not have permission to claim pending items.", Color.red);
                 return;
@@ -176,12 +182,19 @@ namespace FFEmqo.ModifiedItemDrop.Plugin
                 return;
             }
 
+            var mode = args != null && args.Length > 0 ? args[0].ToLowerInvariant() : "oldest";
+            if (mode == "all")
+            {
+                dropService.ClaimAllPending(player);
+                return;
+            }
+
             dropService.ClaimPending(player);
         }
 
         private static void HandleStatus(IRocketPlayer caller)
         {
-            if (!HasPermission(caller, "modifieditemdrop.status") && !HasPermission(caller, "modifieditemdrop.reload"))
+            if (!HasPermission(caller, "modifieditemdrop.diagnostics.status") && !HasPermission(caller, "modifieditemdrop.config.reload"))
             {
                 SendMessage(caller, "You do not have permission to view ModifiedItemDrop status.", Color.red);
                 return;
@@ -216,7 +229,7 @@ namespace FFEmqo.ModifiedItemDrop.Plugin
                 var target = caller as UnturnedPlayer;
                 if (target == null)
                 {
-                    SendMessage(caller, $"Console must specify a player: /mid {subCommand} <player>", Color.yellow);
+                    SendMessage(caller, $"Console must specify a player for /mid {subCommand}.", Color.yellow);
                 }
                 return target;
             }
@@ -232,7 +245,7 @@ namespace FFEmqo.ModifiedItemDrop.Plugin
 
         private static void SendUsage(IRocketPlayer caller)
         {
-            SendMessage(caller, "Usage: /mid reload | /mid preview [player] | /mid dump [player] | /mid claim | /mid status", Color.yellow);
+            SendMessage(caller, MidCommandRouter.Parse(command: null).Message, Color.yellow);
         }
 
         private static void SendMessage(IRocketPlayer caller, string message, Color color)
