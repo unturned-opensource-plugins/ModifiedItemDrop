@@ -15,6 +15,16 @@ namespace FFEmqo.ModifiedItemDrop.Domain
 
         public DeathSessionFinalizationResult FinalizeDisconnect(DeathSession session)
         {
+            return FinalizeWithoutImmediateRestore(session);
+        }
+
+        public DeathSessionFinalizationResult FinalizePluginUnload(DeathSession session)
+        {
+            return FinalizeWithoutImmediateRestore(session);
+        }
+
+        private DeathSessionFinalizationResult FinalizeWithoutImmediateRestore(DeathSession session)
+        {
             if (session == null)
             {
                 throw new ArgumentNullException(nameof(session));

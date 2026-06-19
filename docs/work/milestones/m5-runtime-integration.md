@@ -24,3 +24,19 @@ DOTNET_ROOT=/opt/homebrew/opt/dotnet@8/libexec PATH=/opt/homebrew/opt/dotnet@8/b
 Green result: `Passed: 26, Failed: 0`.
 
 Review note: this is pure domain orchestration. Runtime adapter execution of actual Rocket/Unturned drop operations remains a later M5 slice.
+
+## Slice 2 — Plugin unload finalizes kept Player Assets
+
+Behavior: plugin unload/server shutdown uses the same Death Session responsibility as disconnect. Kept Player Assets must become Durable Claims or Drop fallback before the session is forgotten.
+
+Red: `dotnet test` failed because `DeathSessionFinalizer.FinalizePluginUnload` did not exist.
+
+Green command:
+
+```bash
+DOTNET_ROOT=/opt/homebrew/opt/dotnet@8/libexec PATH=/opt/homebrew/opt/dotnet@8/bin:$PATH dotnet test ModifiedItemDrop.Domain.Tests/ModifiedItemDrop.Domain.Tests.csproj -v minimal
+```
+
+Green result: `Passed: 27, Failed: 0`.
+
+Review note: this slice covers the successful Durable Claim path for unload. Runtime event subscription remains a later adapter slice.
