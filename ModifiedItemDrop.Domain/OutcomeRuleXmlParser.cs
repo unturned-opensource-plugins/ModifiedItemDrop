@@ -33,12 +33,36 @@ namespace FFEmqo.ModifiedItemDrop.Domain
                 throw new InvalidOutcomeRuleConfigurationException("Expected root element OutcomeRules.");
             }
 
+            EnsureOnlyRuleChildren(root);
+
             return root.Elements("Rule").Select(ParseRule).ToList().AsReadOnly();
+        }
+
+        private static void EnsureOnlyRuleChildren(XElement root)
+        {
+            var invalidChildren = root.Elements().Where(element => element.Name.LocalName != "Rule").ToList();
+            if (invalidChildren.Count == 0)
+            {
+                return;
+            }
+
+            if (invalidChildren.Any(LooksLikeV1Configuration))
+            {
+                throw new InvalidOutcomeRuleConfigurationException(
+                    "Detected mixed v1/v2 Outcome Rules configuration. Remove v1-only sections and migrate them to explicit v2 Rule elements.");
+            }
+
+            throw new InvalidOutcomeRuleConfigurationException(
+                "OutcomeRules may contain only Rule elements. Unsupported element(s): " +
+                string.Join(", ", invalidChildren.Select(element => element.Name.LocalName)) + ".");
         }
 
         private static bool LooksLikeV1Configuration(XElement root)
         {
-            if (root.Name.LocalName == "ModifiedItemDropConfiguration")
+            if (root.Name.LocalName == "ModifiedItemDropConfiguration"
+                || root.Name.LocalName == "DeleteOnDeathItems"
+                || root.Name.LocalName == "DropChance"
+                || root.Name.LocalName == "RuleSet")
             {
                 return true;
             }

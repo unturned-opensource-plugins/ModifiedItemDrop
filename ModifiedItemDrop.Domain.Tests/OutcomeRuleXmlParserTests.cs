@@ -105,4 +105,28 @@ public sealed class OutcomeRuleXmlParserTests
         Assert.Contains("migration", exception.Message);
     }
 
+
+    [Fact]
+    public void MixedV1AndV2ConfigurationShapeIsRejected()
+    {
+        var xml = """
+            <OutcomeRules>
+              <Rule name="Default keep" priority="0">
+                <Target kind="Any" />
+                <Outcome kind="Keep" />
+              </Rule>
+              <DeleteOnDeathItems>
+                <ushort>95</ushort>
+              </DeleteOnDeathItems>
+            </OutcomeRules>
+            """;
+
+        var exception = Assert.Throws<InvalidOutcomeRuleConfigurationException>(
+            () => OutcomeRuleXmlParser.Parse(xml));
+
+        Assert.Contains("mixed", exception.Message);
+        Assert.Contains("v1", exception.Message);
+        Assert.Contains("v2", exception.Message);
+    }
+
 }

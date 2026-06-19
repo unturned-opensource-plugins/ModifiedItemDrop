@@ -215,3 +215,19 @@ DOTNET_ROOT=/opt/homebrew/opt/dotnet@8/libexec PATH=/opt/homebrew/opt/dotnet@8/b
 ```
 
 Result: `Passed: 15, Failed: 0`.
+
+## Slice 14 — Mixed v1/v2 configuration rejection
+
+Behavior: an `OutcomeRules` document must not silently accept v1-only sections mixed into v2 XML. Mixed configuration is invalid and must be migrated to explicit v2 `Rule` elements.
+
+Red: `dotnet test` failed because `OutcomeRuleXmlParser.Parse` accepted an `OutcomeRules` root containing `DeleteOnDeathItems`.
+
+Green command:
+
+```bash
+DOTNET_ROOT=/opt/homebrew/opt/dotnet@8/libexec PATH=/opt/homebrew/opt/dotnet@8/bin:$PATH dotnet test ModifiedItemDrop.Domain.Tests/ModifiedItemDrop.Domain.Tests.csproj -v minimal
+```
+
+Green result: `Passed: 16, Failed: 0`.
+
+Review note: this is domain parser validation. Plugin-level safe mode remains a later config integration milestone.
