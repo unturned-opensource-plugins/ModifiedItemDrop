@@ -55,18 +55,16 @@ dotnet build -c Release
 #### 从 GitHub Release 安装
 1. 下载 `ModifiedItemDrop-2.0.0.zip`。
 2. 将 `ModifiedItemDrop.dll` 复制到服务器 `Rocket/Plugins/`。
-3. 将 `Libraries/ModifiedItemDrop.Domain.dll` 复制到服务器 `Rocket/Libraries/`。
-4. 将 `ModifiedItemDrop.configuration.xml` 复制到 `Rocket/Plugins/ModifiedItemDrop/`。
-5. 启动服务器，或替换配置后在游戏中执行 `/mid config reload`。
+3. 将 `ModifiedItemDrop.configuration.xml` 复制到 `Rocket/Plugins/ModifiedItemDrop/`。
+4. 启动服务器，或替换配置后在游戏中执行 `/mid config reload`。
 
 #### 从源码构建后安装
 1. 执行 `dotnet build -c Release`。
 2. 将 `bin/Release/net48/ModifiedItemDrop.dll` 复制到服务器 `Rocket/Plugins/`。
-3. 将 `bin/Release/net48/ModifiedItemDrop.Domain.dll` 复制到服务器 `Rocket/Libraries/`。
-4. 将 `ModifiedItemDrop.configuration.xml` 复制到 `Rocket/Plugins/ModifiedItemDrop/`。
-5. 启动服务器，或替换配置后在游戏中执行 `/mid config reload`。
+3. 将 `ModifiedItemDrop.configuration.xml` 复制到 `Rocket/Plugins/ModifiedItemDrop/`。
+4. 启动服务器，或替换配置后在游戏中执行 `/mid config reload`。
 
-> `ModifiedItemDrop.Domain.dll` 是 v2 的必需依赖，但它不是 Rocket 插件；不要放在 `Rocket/Plugins/`，否则 Rocket 会把它当插件扫描并输出 `Invalid or outdated plugin assembly`。
+> v2.0.0 之后的发布包已将 Domain 逻辑内置进 `ModifiedItemDrop.dll`，不再需要单独部署 `ModifiedItemDrop.Domain.dll`。
 
 ### 3. 基础配置示例
 ```xml
@@ -247,11 +245,10 @@ dotnet build -c Release
 dotnet build -c Debug
 ```
 
-Release 构建后，运行时需要同时部署：
+Release 构建后，运行时需要部署：
 
 ```text
 Rocket/Plugins/ModifiedItemDrop.dll
-Rocket/Libraries/ModifiedItemDrop.Domain.dll
 Rocket/Plugins/ModifiedItemDrop/ModifiedItemDrop.configuration.xml
 ```
 
