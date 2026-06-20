@@ -51,9 +51,20 @@ dotnet build -c Release
 ```
 
 ### 2. 安装部署
-1. 复制 `bin/Release/net48/ModifiedItemDrop.dll` 到服务器 `Rocket/Plugins/`
-2. 复制 `ModifiedItemDrop.configuration.xml` 到 `Rocket/Plugins/ModifiedItemDrop/`
-3. 启动服务器或在游戏中执行 `/mid config reload`
+
+#### 从 GitHub Release 安装
+1. 下载 `ModifiedItemDrop-2.0.0.zip`。
+2. 将 `ModifiedItemDrop.dll` 和 `ModifiedItemDrop.Domain.dll` 一起复制到服务器 `Rocket/Plugins/`。
+3. 将 `ModifiedItemDrop.configuration.xml` 复制到 `Rocket/Plugins/ModifiedItemDrop/`。
+4. 启动服务器，或替换配置后在游戏中执行 `/mid config reload`。
+
+#### 从源码构建后安装
+1. 执行 `dotnet build -c Release`。
+2. 将 `bin/Release/net48/ModifiedItemDrop.dll` 和 `bin/Release/net48/ModifiedItemDrop.Domain.dll` 一起复制到服务器 `Rocket/Plugins/`。
+3. 将 `ModifiedItemDrop.configuration.xml` 复制到 `Rocket/Plugins/ModifiedItemDrop/`。
+4. 启动服务器，或替换配置后在游戏中执行 `/mid config reload`。
+
+> `ModifiedItemDrop.Domain.dll` 是 v2 的必需依赖，不能只安装 `ModifiedItemDrop.dll`。
 
 ### 3. 基础配置示例
 ```xml
@@ -82,7 +93,7 @@ dotnet build -c Release
 </ModifiedItemDropConfiguration>
 ```
 
-> v2 不自动迁移 v1 `RuleSet`。升级前请阅读 `docs/migration/v1-to-v2-configuration.md` 并手动改写为 Outcome Rules。
+> v2 不自动迁移 v1 `RuleSet`。升级前请阅读仓库中的 [`docs/migration/v1-to-v2-configuration.md`](docs/migration/v1-to-v2-configuration.md) 并手动改写为 Outcome Rules。GitHub Release 插件 zip 不包含 `docs/` 目录。
 
 ## ⚙️ 配置详解
 
@@ -232,6 +243,13 @@ dotnet build -c Release
 
 # Debug 构建（开发）
 dotnet build -c Debug
+```
+
+Release 构建后，运行时需要同时部署：
+
+```text
+bin/Release/net48/ModifiedItemDrop.dll
+bin/Release/net48/ModifiedItemDrop.Domain.dll
 ```
 
 ## 📄 许可证
