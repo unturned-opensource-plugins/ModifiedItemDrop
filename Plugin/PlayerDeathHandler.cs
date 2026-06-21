@@ -1,12 +1,12 @@
 using System;
 using FFEmqo.ModifiedItemDrop.Claim;
 using FFEmqo.ModifiedItemDrop.Drop;
+using FFEmqo.ModifiedItemDrop.Utilities;
 using Rocket.Unturned;
 using Rocket.Unturned.Events;
 using Rocket.Unturned.Player;
 using SDG.Unturned;
 using Steamworks;
-using Logger = Rocket.Core.Logging.Logger;
 
 namespace FFEmqo.ModifiedItemDrop.Plugin
 {
@@ -53,62 +53,75 @@ namespace FFEmqo.ModifiedItemDrop.Plugin
 
         private void OnPlayerDeath(UnturnedPlayer player, EDeathCause cause, ELimb limb, CSteamID murderer)
         {
-            if (player == null)
-            {
-                return;
-            }
+            LoggingHelper.SafeExecute(
+                () =>
+                {
+                    if (player == null)
+                    {
+                        return;
+                    }
 
-            _dropService.HandlePlayerDying(player);
+                    _dropService.HandlePlayerDying(player);
+                },
+                "OnPlayerDeath");
         }
 
         private void OnPlayerRevive(UnturnedPlayer player, UnityEngine.Vector3 position, byte angle)
         {
-            if (player == null)
-            {
-                return;
-            }
+            LoggingHelper.SafeExecute(
+                () =>
+                {
+                    if (player == null)
+                    {
+                        return;
+                    }
 
-            // Apply hands slot size based on player permission before restoring items
-            _dropService.ApplyHandsSlotSize(player);
+                    // Apply hands slot size based on player permission before restoring items
+                    _dropService.ApplyHandsSlotSize(player);
 
-            _dropService.HandlePlayerRevived(player);
+                    _dropService.HandlePlayerRevived(player);
+                },
+                "OnPlayerRevive");
         }
 
         private void OnPlayerConnected(UnturnedPlayer player)
         {
-            if (player == null)
-            {
-                return;
-            }
-
-            try
-            {
-                // Apply hands slot size based on player permission when they join
-                _dropService.ApplyHandsSlotSize(player);
-
-                _claimService?.CleanupExpired();
-
-                var claimSettings = _claimService?.GetClaimSettings();
-                if (claimSettings?.AutoClaimOnJoin == true)
+            LoggingHelper.SafeExecute(
+                () =>
                 {
-                    // Auto-claim all pending items
-                    _dropService.ClaimAllPending(player);
-                }
-            }
-            catch (Exception ex)
-            {
-                Logger.LogException(ex);
-            }
+                    if (player == null)
+                    {
+                        return;
+                    }
+
+                    // Apply hands slot size based on player permission when they join
+                    _dropService.ApplyHandsSlotSize(player);
+
+                    _claimService?.CleanupExpired();
+
+                    var claimSettings = _claimService?.GetClaimSettings();
+                    if (claimSettings?.AutoClaimOnJoin == true)
+                    {
+                        // Auto-claim all pending items
+                        _dropService.ClaimAllPending(player);
+                    }
+                },
+                "OnPlayerConnected");
         }
 
         private void OnPlayerDisconnected(UnturnedPlayer player)
         {
-            if (player == null)
-            {
-                return;
-            }
+            LoggingHelper.SafeExecute(
+                () =>
+                {
+                    if (player == null)
+                    {
+                        return;
+                    }
 
-            _dropService.HandlePlayerDisconnected(player);
+                    _dropService.HandlePlayerDisconnected(player);
+                },
+                "OnPlayerDisconnected");
         }
     }
 }
