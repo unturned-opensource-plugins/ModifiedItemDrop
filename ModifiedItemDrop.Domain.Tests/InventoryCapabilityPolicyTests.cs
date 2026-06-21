@@ -37,14 +37,27 @@ public sealed class InventoryCapabilityPolicyTests
     }
 
     [Fact]
-    public void InvalidDimensionsAreClampedWithDiagnostic()
+    public void HandsSlotCanUseTallDimensions()
     {
         var decision = InventoryCapabilityPolicy.SelectHandsSlotRule(
-            new[] { new HandsSlotCapabilityRule("default", 0, 20) },
+            new[] { new HandsSlotCapabilityRule("default", 12, 24) },
+            permission => false);
+
+        Assert.True(decision.Applied);
+        Assert.Equal(12, decision.Width);
+        Assert.Equal(24, decision.Height);
+        Assert.Contains("12x24", decision.Diagnostic);
+    }
+
+    [Fact]
+    public void NonPositiveDimensionsAreClampedWithDiagnostic()
+    {
+        var decision = InventoryCapabilityPolicy.SelectHandsSlotRule(
+            new[] { new HandsSlotCapabilityRule("default", 0, -1) },
             permission => false);
 
         Assert.Equal(1, decision.Width);
-        Assert.Equal(12, decision.Height);
+        Assert.Equal(1, decision.Height);
         Assert.Contains("clamped", decision.Diagnostic);
     }
 }

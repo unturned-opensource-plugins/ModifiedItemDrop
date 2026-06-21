@@ -49,8 +49,8 @@ namespace FFEmqo.ModifiedItemDrop.Domain
                 return new HandsSlotCapabilityDecision(false, string.Empty, 0, 0, "No matching hands slot Inventory Capability rule and no default fallback rule configured.");
             }
 
-            var width = Clamp(selected.Width);
-            var height = Clamp(selected.Height);
+            var width = ClampMinimumDimension(selected.Width);
+            var height = ClampMinimumDimension(selected.Height);
             var diagnostic = "Inventory Capability hands slot rule '" + selected.PermissionName + "' applied";
             if (usedFallback)
             {
@@ -69,19 +69,9 @@ namespace FFEmqo.ModifiedItemDrop.Domain
             return new HandsSlotCapabilityDecision(true, selected.PermissionName, width, height, diagnostic + ".");
         }
 
-        private static int Clamp(int value)
+        private static int ClampMinimumDimension(int value)
         {
-            if (value < 1)
-            {
-                return 1;
-            }
-
-            if (value > 12)
-            {
-                return 12;
-            }
-
-            return value;
+            return value < 1 ? 1 : value;
         }
     }
 }

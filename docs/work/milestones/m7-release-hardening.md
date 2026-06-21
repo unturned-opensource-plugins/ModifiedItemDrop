@@ -27,7 +27,7 @@ Review note: ADR 0005 records the MIT license decision. Release notes now live i
 
 ## Slice 2 — Inventory Capability policy and packaged v2 configuration
 
-Behavior: v2 hands slot sizing is represented as an Inventory Capability, not a Player Asset Outcome. The pure domain `InventoryCapabilityPolicy` selects the last matching permission rule, falls back to an explicit `default` rule, clamps invalid dimensions to the supported 1..12 range, and returns a diagnostic explaining the applied rule. Runtime hands slot resizing and diagnostics export now use this policy. The packaged configuration file now uses `OutcomeRulesXml` and no longer ships a v1 `RuleSet` sample or v1 flat command examples.
+Behavior: v2 hands slot sizing is represented as an Inventory Capability, not a Player Asset Outcome. The pure domain `InventoryCapabilityPolicy` selects the last matching permission rule, falls back to an explicit `default` rule, clamps non-positive dimensions to 1 and otherwise preserves configured dimensions, and returns a diagnostic explaining the applied rule. Runtime hands slot resizing and diagnostics export now use this policy. The packaged configuration file now uses `OutcomeRulesXml` and no longer ships a v1 `RuleSet` sample or v1 flat command examples.
 
 Red:
 

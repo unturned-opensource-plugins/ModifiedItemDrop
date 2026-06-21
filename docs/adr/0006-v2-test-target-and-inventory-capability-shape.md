@@ -29,5 +29,5 @@ This shape is explicitly not an Outcome Rule. It configures inventory capacity/l
 ## Consequences
 
 - Hands slot configuration stays outside `OutcomeRulesXml`.
-- The domain `InventoryCapabilityPolicy` owns permission selection, default fallback behavior, dimension clamping, and diagnostics.
+- The domain `InventoryCapabilityPolicy` owns permission selection, default fallback behavior, minimum dimension clamping, and diagnostics.
 - Runtime adapters may translate existing `HandsSlotSettings` into domain `HandsSlotCapabilityRule` objects.
