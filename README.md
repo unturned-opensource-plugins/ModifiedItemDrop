@@ -122,6 +122,34 @@ dotnet build -c Release
 
 v2 配置必须包含显式 catch-all 规则，例如 `Target kind="Any"`。
 
+#### 可用 Target kind
+
+| `Target kind` | 必填属性 | 作用范围 | 示例 |
+|---------------|----------|----------|------|
+| `Any` | 无 | 所有 Player Assets；通常作为最后的 catch-all 默认规则 | `<Target kind="Any" />` |
+| `Slot` | `slot` | 指定区域/槽位中的顶层物品，例如主武器、背包本体、衣服本体 | `<Target kind="Slot" slot="PrimaryWeapon" />` |
+| `Item` | `itemId` | 指定 Unturned 物品 ID，不区分它位于哪个区域 | `<Target kind="Item" itemId="95" />` |
+| `ClothingContent` | `slot` | 指定衣物容器内的内容物，例如背包里的物品，不匹配衣物本体 | `<Target kind="ClothingContent" slot="Backpack" />` |
+
+#### 可用区域 / `slot` 值
+
+`slot` 大小写敏感，必须按下表填写。`Slot` 和 `ClothingContent` 共用同一组枚举值，但并不是每个区域都有衣物内容。
+
+| `slot` 值 | 中文区域 | 可用于 `Slot` | 可用于 `ClothingContent` | 说明 |
+|-----------|----------|---------------|----------------------------|------|
+| `PrimaryWeapon` | 主武器槽 | ✅ | ❌ | 玩家主武器本体 |
+| `SecondaryWeapon` | 副武器槽 | ✅ | ❌ | 玩家副武器本体 |
+| `Hands` | 手持/手槽 | ✅ | ❌ | 当前手持物品；手槽容量由 `HandsSlotSettings` 单独控制 |
+| `Backpack` | 背包 | ✅ | ✅ | `Slot` 匹配背包本体，`ClothingContent` 匹配背包里的物品 |
+| `Vest` | 背心 | ✅ | ✅ | `Slot` 匹配背心本体，`ClothingContent` 匹配背心里的物品 |
+| `Shirt` | 上衣 | ✅ | ✅ | `Slot` 匹配上衣本体，`ClothingContent` 匹配上衣里的物品 |
+| `Pants` | 裤子 | ✅ | ✅ | `Slot` 匹配裤子本体，`ClothingContent` 匹配裤子里的物品 |
+| `Hat` | 帽子 | ✅ | ⚠️ | 可匹配帽子本体；原版库存页没有帽子内容容器 |
+| `Mask` | 面罩 | ✅ | ⚠️ | 可匹配面罩本体；原版库存页没有面罩内容容器 |
+| `Glasses` | 眼镜 | ✅ | ⚠️ | 可匹配眼镜本体；原版库存页没有眼镜内容容器 |
+
+> v2 当前没有单独的 `Region` target。旧版“区域概率”请改写为上面的 `Slot` / `Item` / `ClothingContent` 规则。
+
 ## 🎮 命令参考
 
 | 命令 | 权限 | 说明 |
